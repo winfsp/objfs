@@ -1,0 +1,265 @@
+'\" t
+.\"     Title: objfs
+.\"    Author: [see the "AUTHORS" section]
+.\" Generator: Asciidoctor 1.5.6.1
+.\"      Date: 2018-03-30
+.\"    Manual: \ \&
+.\"    Source: \ \&
+.\"  Language: English
+.\"
+.TH "OBJFS" "1" "2018-03-30" "\ \&" "\ \&"
+.ie \n(.g .ds Aq \(aq
+.el       .ds Aq '
+.ss \n[.ss] 0
+.nh
+.ad l
+.de URL
+\\$2 \(laURL: \\$1 \(ra\\$3
+..
+.if \n[.g] .mso www.tmac
+.LINKSTYLE blue R < >
+.SH "NAME"
+objfs \- object storage file system
+.SH "SYNOPSIS"
+.sp
+\f[CR]objfs [\-options] command args...\fP
+
+.br
+.SH "DESCRIPTION"
+.sp
+The objfs program implements the \(lqobject storage file system\(rq.
+.sp
+Objfs exposes objects from an object storage, such as a cloud drive, etc. as files in a file system that is fully integrated with the operating system. Programs that run on the operating system are able to access these files as if they are stored in a local "drive" (perhaps with some delay due to network operations).
+.sp
+Objfs accepts commands such as \f[CR]auth\fP and \f[CR]mount\fP, but also shell\-like commands, such as \f[CR]ls\fP, \f[CR]stat\fP, etc.
+
+.br
+.SS "Default Storage"
+.sp
+Objfs uses defaults to simplify command line invocation. In the default build of objfs, the default storage is \f[CR]onedrive\fP.
+.SS "Auth"
+.sp
+Objfs supports multiple "auth" (authentication or authorization) mechanisms through the \f[CR]\-credentials path\fP option and the \f[CR]auth\fP command.
+.sp
+In general before an object storage service can be used it requires auth. The specific auth mechanism used depends on the service and it ranges from no auth, to username/password, to Oauth2, etc. Auth mechanisms require credentials, which can be supplied using the \f[CR]\-credentials path\fP option.
+.sp
+In some cases the object storage service cannot readily accept the supplied credentials, they must be converted to other credentials first. As an authentication example, a particular service may require username/password credentials to be converted to some form of service\-level token before they can be used. As an authorization example Oauth2 requires application\-level credentials together with user consent to form a service\-level token that can be used to access the service.
+.sp
+The \f[CR]auth\fP command can be used for this purpose. It takes user\-level or application\-level credentials and converts them to service\-level credentials.
+.sp
+Credentials can be stored in the local file system or the system keyring. The syntax \f[CR]/file/path\fP is used to name credentials stored in the file system. The syntax \f[CR]keyring:service/user\fP is used to name credentials stored in the system keyring.
+.SS "Example \- Oauth2 Flow"
+.sp
+.RS 4
+.ie n \{\
+\h'-04'\(bu\h'+03'\c
+.\}
+.el \{\
+.sp -1
+.IP \(bu 2.3
+.\}
+Prepare the Oauth2 \f[CR]client_secret\fP credentials in a file or the system keyring:
+.sp
+.if n \{\
+.RS 4
+.\}
+.nf
+client_id="XXXXXXXX"
+client_secret="XXXXXXXX"
+redirect_uri="http://localhost:xxxxx"
+scope="files.readwrite.all offline_access"
+.fi
+.if n \{\
+.RE
+.\}
+.RE
+.sp
+.RS 4
+.ie n \{\
+\h'-04'\(bu\h'+03'\c
+.\}
+.el \{\
+.sp -1
+.IP \(bu 2.3
+.\}
+Issue the command:
+.sp
+.if n \{\
+.RS 4
+.\}
+.nf
+$ ./objfs \-credentials=CLIENT_SECRET_PATH auth TOKEN_PATH
+.fi
+.if n \{\
+.RE
+.\}
+.RE
+.sp
+.RS 4
+.ie n \{\
+\h'-04'\(bu\h'+03'\c
+.\}
+.el \{\
+.sp -1
+.IP \(bu 2.3
+.\}
+This will launch your browser and ask for authorization. If the access is authorized the Oauth2 \f[CR]access_token\fP and \f[CR]refresh_token\fP will be stored in the specified path.
+.RE
+.sp
+.RS 4
+.ie n \{\
+\h'-04'\(bu\h'+03'\c
+.\}
+.el \{\
+.sp -1
+.IP \(bu 2.3
+.\}
+The object storage can now be mounted using the command:
+.sp
+.if n \{\
+.RS 4
+.\}
+.nf
+$ ./objfs \-credentials=TOKEN_PATH mount MOUNTPOINT
+.fi
+.if n \{\
+.RE
+.\}
+.RE
+.SS "Mount"
+.sp
+The objfs \f[CR]mount\fP command is used to mount an object storage as a file system on a mountpoint. On Windows the mount point must be a non\-existing drive or directory; it is recommended that an object storage is only mounted as a drive when the object storage is case\-sensitive. On macOS and Linux the mount point must be an existing directory.
+.sp
+To mount on Windows:
+.sp
+.if n \{\
+.RS 4
+.\}
+.nf
+> objfs \-credentials=TOKEN_PATH mount \-o uid=\-1,gid=\-1 mount X:
+.fi
+.if n \{\
+.RE
+.\}
+.sp
+To mount on macOS and Linux:
+.sp
+.if n \{\
+.RS 4
+.\}
+.nf
+$ ./objfs \-credentials=TOKEN_PATH mount MOUNTPOINT
+.fi
+.if n \{\
+.RE
+.\}
+.sp
+Objfs uses a local file cache to speed up file system operations. This caches files locally when they are first opened; subsequent I/O operations will be performed against the local file and are therefore fast. Modified files will be uploaded to the object storage when they are closed. File system operations such as creating and deleting files and listing directories are sent directly to the object storage and are therefore slow (although some of their results are cached).
+.sp
+The Objfs cache was inspired by an early version of the Andrew File System (AFS). For more information see the paper \c
+.URL "http://pages.cs.wisc.edu/~remzi/OSTEP/dist\-afs.pdf" "" "."
+
+.br
+.SH "GENERAL OPTIONS"
+.sp
+The following options apply to all commands:
+.sp
+\f[CR]\-cache path\fP
+.RS 4
+path to file system cache
+.RE
+.sp
+\f[CR]\-credentials path\fP
+.RS 4
+auth credentials path (keyring:service/user or /file/path)
+.RE
+.sp
+\f[CR]\-storage name\fP
+.RS 4
+storage name to access (default "onedrive")
+.RE
+.sp
+\f[CR]\-storage_uri uri\fP
+.RS 4
+storage uri to access
+.RE
+.sp
+\f[CR]\-v\fP
+.RS 4
+    verbose
+
+.br
+.RE
+.SH "COMMANDS"
+.sp
+The following commands may be used:
+.sp
+\f[CR]auth\fP
+.RS 4
+perform authentication/authorization
+.RE
+.sp
+\f[CR]mount\fP
+.RS 4
+mount file system
+.RE
+.sp
+\f[CR]statfs\fP
+.RS 4
+get storage information
+.RE
+.sp
+\f[CR]ls\fP
+.RS 4
+list files
+.RE
+.sp
+\f[CR]stat\fP
+.RS 4
+display file information
+.RE
+.sp
+\f[CR]mkdir\fP
+.RS 4
+make directories
+.RE
+.sp
+\f[CR]rmdir\fP
+.RS 4
+remove directories
+.RE
+.sp
+\f[CR]rm\fP
+.RS 4
+remove files
+.RE
+.sp
+\f[CR]mv\fP
+.RS 4
+move (rename) files
+.RE
+.sp
+\f[CR]get\fP
+.RS 4
+get (download) files
+.RE
+.sp
+\f[CR]put\fP
+.RS 4
+put (upload) files
+.RE
+.sp
+\f[CR]cache\-pending\fP
+.RS 4
+list pending cache files
+.RE
+.sp
+\f[CR]cache\-reset\fP
+.RS 4
+    reset cache (upload and evict files)
+
+.br
+.RE
+.SH "COPYRIGHT"
+.sp
+\(co 2018 Bill Zissimopoulos

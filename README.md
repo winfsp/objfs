@@ -66,9 +66,9 @@ Objfs supports multiple "auth" (authentication or authorization) mechanisms thro
 
 In general before an object storage service can be used it requires auth. The specific auth mechanism used depends on the service and it ranges from no auth, to username/password, to Oauth2, etc. Auth mechanisms require credentials, which can be supplied using the `-credentials path` option.
 
-In some cases the object storage service cannot readily accept the supplied credentials, they must be converted to other credentials first. As an authentication example, a particular service may require username/password credentials to be converted to some form of service-level token before they can used. As an authorization example Oauth2 requires application-level credentials together with user consent to form a service-level token that can be used to access the service.
+In some cases the object storage service cannot readily accept the supplied credentials, they must be converted to other credentials first. As an authentication example, a particular service may require username/password credentials to be converted to some form of service-level token before they can be used. As an authorization example Oauth2 requires application-level credentials together with user consent to form a service-level token that can be used to access the service.
 
-The `auth` command can be used for this purpose. It will take user-level or application-level credentials and converts them to service-level credentials.
+The `auth` command can be used for this purpose. It takes user-level or application-level credentials and converts them to service-level credentials.
 
 Credentials can be stored in the local file system or the system keyring. The syntax `/file/path` is used to name credentials stored in the file system. The syntax `keyring:service/user` is used to name credentials stored in the system keyring.
 
@@ -98,7 +98,7 @@ The objfs `mount` command is used to mount an object storage as a file system on
 To mount on Windows:
 
 ```
-> ./objfs -credentials=TOKEN_PATH mount -o uid=-1,gid=-1 mount X:
+> objfs -credentials=TOKEN_PATH mount -o uid=-1,gid=-1 mount X:
 ```
 
 To mount on macOS and Linux:

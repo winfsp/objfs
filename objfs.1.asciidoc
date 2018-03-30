@@ -13,81 +13,141 @@ SYNOPSIS
 
 DESCRIPTION
 -----------
-The `objfs` program implements the ``object storage file system''. It exposes
-objects from an object storage, such as a cloud drive, etc. as files in a file
-system that is fully integrated with the operating system. Programs that run
-on the operating system are able to access these files as if they are stored
-in a local "drive" (perhaps with some delay due to network operations).
+The objfs program implements the ``object storage file system''.
 
-Currently supported operating systems are: Windows, macOS, and Linux.
+Objfs exposes objects from an object storage, such as a cloud drive, etc. as files in a file system that is fully integrated with the operating system. Programs that run on the operating system are able to access these files as if they are stored in a local "drive" (perhaps with some delay due to network operations).
+
+Objfs accepts commands such as `auth` and `mount`, but also shell-like commands, such as `ls`, `stat`, etc.
+{blank}
+
+Default Storage
+~~~~~~~~~~~~~~~
+
+Objfs uses defaults to simplify command line invocation. In the default build of objfs, the default storage is `onedrive`.
+
+Auth
+~~~~
+
+Objfs supports multiple "auth" (authentication or authorization) mechanisms through the `-credentials path` option and the `auth` command.
+
+In general before an object storage service can be used it requires auth. The specific auth mechanism used depends on the service and it ranges from no auth, to username/password, to Oauth2, etc. Auth mechanisms require credentials, which can be supplied using the `-credentials path` option.
+
+In some cases the object storage service cannot readily accept the supplied credentials, they must be converted to other credentials first. As an authentication example, a particular service may require username/password credentials to be converted to some form of service-level token before they can be used. As an authorization example Oauth2 requires application-level credentials together with user consent to form a service-level token that can be used to access the service.
+
+The `auth` command can be used for this purpose. It takes user-level or application-level credentials and converts them to service-level credentials.
+
+Credentials can be stored in the local file system or the system keyring. The syntax `/file/path` is used to name credentials stored in the file system. The syntax `keyring:service/user` is used to name credentials stored in the system keyring.
+
+Example - Oauth2 Flow
+^^^^^^^^^^^^^^^^^^^^^
+
+- Prepare the Oauth2 `client_secret` credentials in a file or the system keyring:
++
+----
+client_id="XXXXXXXX"
+client_secret="XXXXXXXX"
+redirect_uri="http://localhost:xxxxx"
+scope="files.readwrite.all offline_access"
+----
+
+- Issue the command:
++
+----
+$ ./objfs -credentials=CLIENT_SECRET_PATH auth TOKEN_PATH
+----
+
+- This will launch your browser and ask for authorization. If the access is authorized the Oauth2 `access_token` and `refresh_token` will be stored in the specified path.
+
+- The object storage can now be mounted using the command:
++
+----
+$ ./objfs -credentials=TOKEN_PATH mount MOUNTPOINT
+----
+
+Mount
+~~~~~
+
+The objfs `mount` command is used to mount an object storage as a file system on a mountpoint. On Windows the mount point must be a non-existing drive or directory; it is recommended that an object storage is only mounted as a drive when the object storage is case-sensitive. On macOS and Linux the mount point must be an existing directory.
+
+To mount on Windows:
+
+----
+> objfs -credentials=TOKEN_PATH mount -o uid=-1,gid=-1 mount X:
+----
+
+To mount on macOS and Linux:
+
+----
+$ ./objfs -credentials=TOKEN_PATH mount MOUNTPOINT
+----
+
+Objfs uses a local file cache to speed up file system operations. This caches files locally when they are first opened; subsequent I/O operations will be performed against the local file and are therefore fast. Modified files will be uploaded to the object storage when they are closed. File system operations such as creating and deleting files and listing directories are sent directly to the object storage and are therefore slow (although some of their results are cached).
+
+The Objfs cache was inspired by an early version of the Andrew File System (AFS). For more information see the paper http://pages.cs.wisc.edu/~remzi/OSTEP/dist-afs.pdf.
 {blank}
 
 GENERAL OPTIONS
 ---------------
 The following options apply to all commands:
 
+`-cache path`::
+    path to file system cache
+
 `-credentials path`::
-    Authentication/authorization credentials to use when accessing the object
-    storage. The `path` can be a file path (`/file/path`) or pointing into the
-    system keyring `keyring:service/user`. The default credentials are read
-    from the system keyring (`keyring:objfs/<storage>`).
+    auth credentials path (keyring:service/user or /file/path)
 
 `-storage name`::
-    Storage name to access. The default is "onedrive".
+    storage name to access (default "onedrive")
 
 `-storage_uri uri`::
-    Storage uri to access. The default is based on the storage used.
+    storage uri to access
 
 `-v`::
-    Verbose output.
+    verbose
 {blank}
 
 COMMANDS
 --------
 The following commands may be used:
 
-`help [command]`::
-    Display command line help.
+`auth`::
+    perform authentication/authorization
 
-`auth output-credentials`::
-    Perform authentication/authorization. The credentials specified in the
-    `-credentials path` option will be used as the initial authentication/
-    authorization credentials. In some cases the user may have to confirm
-    authorization via the system web browser or other method. The resulting
-    credentials will be stored in `output-credentials`.
+`mount`::
+    mount file system
 
-`mount [-o option...] mountpoint`::
-    Mount file system.
+`statfs`::
+    get storage information
 
-`ls [-l][-n count] path...`::
-    List files.
+`ls`::
+    list files
 
-`stat [-l] path...`::
-    Display file information.
+`stat`::
+    display file information
 
-`mkdir path...`::
-    Make directories.
+`mkdir`::
+    make directories
 
-`rmdir path...`::
-    Remove directories.
+`rmdir`::
+    remove directories
 
-`rm path...`::
+`rm`::
     remove files
 
-`mv oldpath newpath`::
-    Move (rename) files.
+`mv`::
+    move (rename) files
 
-`get [-r range][-s signature] path [local-path]`::
-    Get (download) files.
+`get`::
+    get (download) files
 
-`put [local-path] path`::
-    Put (upload) files.
+`put`::
+    put (upload) files
 
 `cache-pending`::
-    List pending cache files
+    list pending cache files
 
 `cache-reset`::
-    Reset cache (upload and evict files).
+    reset cache (upload and evict files)
 {blank}
 
 COPYRIGHT
