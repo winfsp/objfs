@@ -21,7 +21,7 @@ debug: registry.go
 	go build -tags debug -gcflags "-N -l"
 
 registry.go: registry.go.in Makefile
-	go run tools/listtool.go registry.go.in $(Packages) > registry.go
+	go run _tools/listtool.go registry.go.in $(Packages) > registry.go
 
 .PHONY: manpage
 manpage: $(patsubst %.1.asciidoc,%.1,$(wildcard *.1.asciidoc))
@@ -30,4 +30,4 @@ manpage: $(patsubst %.1.asciidoc,%.1,$(wildcard *.1.asciidoc))
 
 .PHONY: test
 test:
-	tools$(PathSep)run-tests -count=1 ./...
+	_tools$(PathSep)run-tests -count=1 ./...
