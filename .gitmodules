@@ -1,0 +1,9 @@
+[submodule "vendor/github.com/billziss-gh/cgofuse"]
+	path = vendor/github.com/billziss-gh/cgofuse
+	url = https://github.com/billziss-gh/cgofuse.git
+[submodule "vendor/github.com/billziss-gh/golib"]
+	path = vendor/github.com/billziss-gh/golib
+	url = https://github.com/billziss-gh/golib.git
+[submodule "vendor/github.com/boltdb/bolt"]
+	path = vendor/github.com/boltdb/bolt
+	url = https://github.com/boltdb/bolt.git
