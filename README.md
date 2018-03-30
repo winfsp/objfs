@@ -98,7 +98,7 @@ The objfs `mount` command is used to mount an object storage as a file system on
 To mount on Windows:
 
 ```
-> ./objfs -credentials=TOKEN_PATH -o uid=-1,gid=-1 mount X:
+> ./objfs -credentials=TOKEN_PATH mount -o uid=-1,gid=-1 mount X:
 ```
 
 To mount on macOS and Linux:
