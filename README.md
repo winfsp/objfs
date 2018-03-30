@@ -123,7 +123,7 @@ Prerequisites:
 To build the following is usually sufficient:
 
 ```
-$ go get github.com/billziss-gh/objfs
+$ go get -d github.com/billziss-gh/objfs
 $ make      # on windows you may have to update the PATH in make.cmd
 ```
 
