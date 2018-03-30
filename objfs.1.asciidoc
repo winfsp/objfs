@@ -110,37 +110,37 @@ COMMANDS
 --------
 The following commands may be used:
 
-`auth`::
+`auth output-credentials`::
     perform authentication/authorization
 
-`mount`::
+`mount [-o option...] mountpoint`::
     mount file system
 
 `statfs`::
     get storage information
 
-`ls`::
+`ls [-l][-n count] path...`::
     list files
 
-`stat`::
+`stat [-l] path...`::
     display file information
 
-`mkdir`::
+`mkdir path...`::
     make directories
 
-`rmdir`::
+`rmdir path...`::
     remove directories
 
-`rm`::
+`rm path...`::
     remove files
 
-`mv`::
+`mv oldpath newpath`::
     move (rename) files
 
-`get`::
+`get [-r range][-s signature] path [local-path]`::
     get (download) files
 
-`put`::
+`put [local-path] path`::
     put (upload) files
 
 `cache-pending`::

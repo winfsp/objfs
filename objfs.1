@@ -194,12 +194,12 @@ storage uri to access
 .sp
 The following commands may be used:
 .sp
-\f[CR]auth\fP
+\f[CR]auth output\-credentials\fP
 .RS 4
 perform authentication/authorization
 .RE
 .sp
-\f[CR]mount\fP
+\f[CR]mount [\-o option...] mountpoint\fP
 .RS 4
 mount file system
 .RE
@@ -209,42 +209,42 @@ mount file system
 get storage information
 .RE
 .sp
-\f[CR]ls\fP
+\f[CR]ls [\-l][\-n count] path...\fP
 .RS 4
 list files
 .RE
 .sp
-\f[CR]stat\fP
+\f[CR]stat [\-l] path...\fP
 .RS 4
 display file information
 .RE
 .sp
-\f[CR]mkdir\fP
+\f[CR]mkdir path...\fP
 .RS 4
 make directories
 .RE
 .sp
-\f[CR]rmdir\fP
+\f[CR]rmdir path...\fP
 .RS 4
 remove directories
 .RE
 .sp
-\f[CR]rm\fP
+\f[CR]rm path...\fP
 .RS 4
 remove files
 .RE
 .sp
-\f[CR]mv\fP
+\f[CR]mv oldpath newpath\fP
 .RS 4
 move (rename) files
 .RE
 .sp
-\f[CR]get\fP
+\f[CR]get [\-r range][\-s signature] path [local\-path]\fP
 .RS 4
 get (download) files
 .RE
 .sp
-\f[CR]put\fP
+\f[CR]put [local\-path] path\fP
 .RS 4
 put (upload) files
 .RE
