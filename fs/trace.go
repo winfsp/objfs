@@ -25,3 +25,6 @@ func traceIgnore(...interface{}) {
 func Trace(vals ...interface{}) func(vals ...interface{}) {
 	return traceIgnore
 }
+
+func Tracef(form string, vals ...interface{}) {
+}

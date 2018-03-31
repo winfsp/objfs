@@ -114,6 +114,8 @@ func FuseErrc(err error) (errc int) {
 		return
 	}
 
+	Tracef("%+v", err)
+
 	errc = -fuse.EIO
 	for e := err; nil != e; e = errors.Cause(e) {
 		a := errors.Attachment(e)

@@ -30,3 +30,7 @@ func Trace(vals ...interface{}) func(vals ...interface{}) {
 	uid, gid, _ := fuse.Getcontext()
 	return trace.Trace(1, fmt.Sprintf("[uid=%v,gid=%v]", uid, gid), vals...)
 }
+
+func Tracef(form string, vals ...interface{}) {
+	trace.Tracef(1, form, vals...)
+}
