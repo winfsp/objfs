@@ -141,6 +141,8 @@ The project has the following dependencies and their licensing:
     - License: MIT
 - [golib](https://github.com/billziss-gh/golib) - Collection of Go libraries.
     - License: MIT
+- [oauth2-helper](https://github.com/billziss-gh/oauth2-helper) - OAuth 2.0 for Native Apps
+    - License: MIT
 - [WinFsp](https://github.com/billziss-gh/winfsp) - Windows File System Proxy - FUSE for Windows.
     - License: GPLv3 w/ FLOSS exception
 - [FUSE for macOS](https://osxfuse.github.io) - File system integration made easy.
