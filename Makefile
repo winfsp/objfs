@@ -1,7 +1,7 @@
 # Makefile
 
 Packages=\
-	github.com/billziss-gh/objfs.pkg/objio/onedrive
+	./vendor/github.com/billziss-gh/objfs.pkg/objio/onedrive
 
 ifeq ($(OS),Windows_NT)
 PathSep=\$(strip)

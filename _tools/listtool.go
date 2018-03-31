@@ -27,6 +27,8 @@ import (
 	"go/build"
 	"os"
 	"os/exec"
+	"path/filepath"
+	"strings"
 	"text/template"
 )
 
@@ -40,12 +42,23 @@ func usage() {
 	os.Exit(2)
 }
 
+func stripVendor(path string) string {
+	if i := strings.LastIndex(path, "/vendor/"); -1 != i {
+		return path[i+len("/vendor/"):]
+	}
+	return path
+}
+
 func main() {
 	if 2 > len(os.Args) {
 		usage()
 	}
 
-	templ, err := template.ParseFiles(os.Args[1])
+	tname := os.Args[1]
+	funcs := template.FuncMap{
+		"stripVendor": stripVendor,
+	}
+	templ, err := template.New(filepath.Base(tname)).Funcs(funcs).ParseFiles(tname)
 	if nil != err {
 		fail(err)
 	}
