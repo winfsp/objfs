@@ -12,6 +12,10 @@ endif
 .PHONY: default
 default: build
 
+.PHONY: generate
+generate:
+	go generate ./...
+
 .PHONY: build
 build: registry.go
 	go build -ldflags "-s -w"

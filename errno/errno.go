@@ -17,20 +17,14 @@
 
 package errno
 
-import (
-	"strconv"
-)
+//go:generate $GOPATH/bin/stringer -type=Errno $GOFILE
 
 // Errno contains an error number (code) and implements error.
 type Errno int
 
-func (self Errno) Error() string {
-	return "errno.Errno(" + strconv.Itoa(int(self)) + ")"
-}
-
 // Generic errno constants.
 const (
-	_ = Errno(iota)
+	_ Errno = iota
 	E2BIG
 	EACCES
 	EADDRINUSE
