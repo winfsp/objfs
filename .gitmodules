@@ -7,3 +7,6 @@
 [submodule "vendor/github.com/boltdb/bolt"]
 	path = vendor/github.com/boltdb/bolt
 	url = https://github.com/boltdb/bolt.git
+[submodule "vendor/github.com/billziss-gh/objfs.pkg"]
+	path = vendor/github.com/billziss-gh/objfs.pkg
+	url = https://github.com/billziss-gh/objfs.pkg.git
