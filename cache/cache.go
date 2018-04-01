@@ -604,7 +604,21 @@ func (self *Cache) removeNode(node *node_t, dir bool) (err error) {
 }
 
 func (self *Cache) renameNode(node *node_t, newpath string) (err error) {
-	pathKey := self.pathKey(node.Path)
+	oldpath := node.Path
+
+	pathKey := self.pathKey(oldpath)
+	newpathKey := self.pathKey(newpath)
+
+	k := []byte(pathKey)
+	newk := []byte(newpathKey)
+
+	if pathKey != newpathKey {
+		if pathKeyHasPrefix(k, newk) || pathKeyHasPrefix(newk, k) {
+			// guard against directory loop creation
+			return errno.EINVAL
+		}
+	}
+
 	self.lockPath(pathKey)
 	defer self.unlockPath(pathKey)
 
@@ -613,17 +627,18 @@ func (self *Cache) renameNode(node *node_t, newpath string) (err error) {
 		return
 	}
 
-	newpathKey := self.pathKey(newpath)
-	self.lockPath(newpathKey)
-	defer self.unlockPath(newpathKey)
+	if pathKey != newpathKey {
+		// to avoid deadlock only lock when oldpath != newpath;
+		// (this can happen during case-sensitivity rename (file->FILE))
+		self.lockPath(newpathKey)
+		defer self.unlockPath(newpathKey)
+	}
 
-	err = self.storage.Rename(node.Path, newpath)
+	err = self.storage.Rename(oldpath, newpath)
 	if nil != err {
 		return
 	}
 
-	k := []byte(pathKey)
-	newk := []byte(newpathKey)
 	keys := make([][]byte, 0, 128)
 	inos := make([]uint64, 0, 128)
 	err = self.database.Update(func(tx *bolt.Tx) (err error) {
@@ -659,7 +674,7 @@ func (self *Cache) renameNode(node *node_t, newpath string) (err error) {
 			copy(ibuf[len(newk):], i[len(k):])
 			i = ibuf[:l]
 
-			n.Path = newpath + n.Path[len(k):]
+			n.Path = newpath + n.Path[len(oldpath):]
 
 			err = n.Put(&ntx, i)
 			if nil != err {
@@ -680,7 +695,7 @@ func (self *Cache) renameNode(node *node_t, newpath string) (err error) {
 	for _, ino := range inos {
 		n := self.openmap[ino]
 		if nil != n {
-			n.Path = newpath + n.Path[len(k):]
+			n.Path = newpath + n.Path[len(oldpath):]
 		}
 	}
 	self.openmux.Unlock()
