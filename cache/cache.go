@@ -912,6 +912,9 @@ func (self *Cache) readNodeFromStorage(
 			_, err = io.Copy(f, reader)
 		} else {
 			_, err = io.CopyN(f, reader, size)
+			if io.EOF == err {
+				err = nil
+			}
 		}
 		if nil != err {
 			return
