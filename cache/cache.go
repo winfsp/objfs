@@ -661,6 +661,7 @@ func (self *Cache) renameNode(node *node_t, newpath string) (err error) {
 				return
 			}
 
+			// delete old key
 			err = (*node_t)(nil).Put(&ntx, i)
 			if nil != err {
 				return
@@ -674,8 +675,15 @@ func (self *Cache) renameNode(node *node_t, newpath string) (err error) {
 			copy(ibuf[len(newk):], i[len(k):])
 			i = ibuf[:l]
 
+			// delete new key
+			err = (*node_t)(nil).Put(&ntx, i)
+			if nil != err {
+				return
+			}
+
 			n.Path = newpath + n.Path[len(oldpath):]
 
+			// place new key
 			err = n.Put(&ntx, i)
 			if nil != err {
 				return
