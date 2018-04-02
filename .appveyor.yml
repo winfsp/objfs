@@ -1,0 +1,40 @@
+version: '{build}'
+
+clone_folder: C:\projects\go\src\github.com\billziss-gh\objfs
+
+environment:
+  GOPATH: C:\projects\go
+  PATH: C:\mingw-w64\x86_64-6.3.0-posix-seh-rt_v5-rev1\mingw64\bin;%PATH%
+  CRED_CLIENT_ID:
+    secure: UT11dYGRv3c3lhoGnCy5ovV8wv8yG4O4Q4SWds188IzXoTPAfBXUIqvlfnkYKRU48yiB804PJNJcozwov7xiJQ==
+  CRED_CLIENT_SECRET:
+    secure: 3XPF6jI1pL85NB/1KLZL8ts+4AXBVbL3ToqRij2ZGDkdhxoeNrcFvcbrRKVHjIU1
+  CRED_REFRESH_TOKEN:
+    secure: WNdc7OGBuyPM3GM5HIyCkzQhZpUHoryEBdb/c3al9yaWYxOq56Hk8F3rgfiDxXMQysFyicidjLxVhIAiLP20ab+rbipmuj/Umg75lQ+P8s8yQAzXSLcalEe7JwzuO3rNNG3kLs/DfMIxtQY+Idz2E2+FVSeJKu5ANhd4n9Dq/59PmofTzgPLkSNQXQAz+WMNpppZBdO4mcDBUcDyrzV+3ZCrCTOmNFwihbLfKiK8szfCr710aLEbDaheECktC73x3/rPPUmeYgKYD98FujYr6bwahgWoZEeGsMh0qFUeFCqtst4aTKpqSSR8+VmiB9j4XqSzFY0m5vOKAdSrd542j5QVddFLryAh+90awBWPLDftazgsLrTjXTAdixbNaRVmXBteSXWCoCc4dWUcGtAi6k49k49o4Ry9S0waPBBfUWC0teE+sCPwFATcdx6GpdpFWDj/RjNPAHcDvf6gnVbNOhvoEznD3iRcc6oyNtPA47bw1/xmiE7gl0eI5GzqJtuf6UGhvvsVFupeWfCMeMu5/139TIZa4IVOg5pS9sI+0Mw=
+
+install:
+- git submodule update --init --recursive
+- git clone -q https://github.com/billziss-gh/winfsp.git C:\projects\winfsp
+- git -C C:\projects\winfsp checkout -q release/1.2
+- choco install winfsp --version=1.2.17346 -y
+
+build_script:
+- make
+
+test_script:
+- call "%VS140COMNTOOLS%\..\..\VC\vcvarsall.bat" x64
+- devenv C:\projects\winfsp\build\VStudio\winfsp.sln /build "Release|x64"
+
+- echo access_token=0        >C:\projects\onedrive.txt
+- echo %CRED_CLIENT_ID%     >>C:\projects\onedrive.txt
+- echo %CRED_CLIENT_SECRET% >>C:\projects\onedrive.txt
+- echo %CRED_REFRESH_TOKEN% >>C:\projects\onedrive.txt
+
+# hard code fsreg parameters because appveyor does not like percents ("--VolumePrefix=%1 %2")
+- C:\projects\winfsp\tools\fsreg.bat objfs "C:\projects\go\src\github.com\billziss-gh\objfs\objfs.exe" "-credentials=C:\projects\onedrive.txt mount -o uid=11,gid=65792,VolumePrefix=/objfs/onedrive M:" "D:P(A;;RPWPLC;;;WD)"
+
+- 'net use M: \\objfs\onedrive'
+- 'M: & cd'
+- C:\projects\winfsp\build\VStudio\build\Release\winfsp-tests-x64.exe --case-insensitive-cmp --external --resilient --share-prefix=\objfs\onedrive create_test
+- 'C: & cd'
+- 'net use M: /delete'
