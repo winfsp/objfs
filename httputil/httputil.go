@@ -18,6 +18,7 @@
 package httputil
 
 import (
+	"crypto/tls"
 	"errors" // remain compatible with package http
 	"net/http"
 	"sync"
@@ -51,6 +52,27 @@ func AllowRedirect(req *http.Request, allow bool) {
 func NewClient() *http.Client {
 	return &http.Client{
 		CheckRedirect: checkRedirect,
+	}
+}
+
+func SetInsecureSkipVerify(client *http.Client) {
+	if nil == client.Transport {
+		transport := http.DefaultTransport.(*http.Transport)
+		client.Transport = &http.Transport{
+			Proxy:                 transport.Proxy,
+			DialContext:           transport.DialContext,
+			MaxIdleConns:          transport.MaxIdleConns,
+			IdleConnTimeout:       transport.IdleConnTimeout,
+			TLSHandshakeTimeout:   transport.TLSHandshakeTimeout,
+			ExpectContinueTimeout: transport.ExpectContinueTimeout,
+			TLSClientConfig:       &tls.Config{InsecureSkipVerify: true},
+		}
+	} else if transport, ok := client.Transport.(*http.Transport); ok {
+		if nil == transport.TLSClientConfig {
+			transport.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+		} else {
+			transport.TLSClientConfig.InsecureSkipVerify = true
+		}
 	}
 }
 

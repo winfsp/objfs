@@ -45,6 +45,8 @@ commands:
     	reset cache (upload and evict files)
 
 options:
+  -accept-tls-cert
+    	accept any TLS certificate presented by the server (insecure)
   -cache path
     	path to file system cache
   -credentials path

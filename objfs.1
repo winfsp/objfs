@@ -2,12 +2,12 @@
 .\"     Title: objfs
 .\"    Author: [see the "AUTHORS" section]
 .\" Generator: Asciidoctor 1.5.6.1
-.\"      Date: 2018-03-30
+.\"      Date: 2018-04-02
 .\"    Manual: \ \&
 .\"    Source: \ \&
 .\"  Language: English
 .\"
-.TH "OBJFS" "1" "2018-03-30" "\ \&" "\ \&"
+.TH "OBJFS" "1" "2018-04-02" "\ \&" "\ \&"
 .ie \n(.g .ds Aq \(aq
 .el       .ds Aq '
 .ss \n[.ss] 0
@@ -164,6 +164,11 @@ The Objfs cache was inspired by an early version of the Andrew File System (AFS)
 .sp
 The following options apply to all commands:
 .sp
+\f[CR]\-accept\-tls\-cert\fP
+.RS 4
+accept any TLS certificate presented by the server (insecure)
+.RE
+.sp
 \f[CR]\-cache path\fP
 .RS 4
 path to file system cache
@@ -179,7 +184,7 @@ auth credentials path (keyring:service/user or /file/path)
 storage name to access (default "onedrive")
 .RE
 .sp
-\f[CR]\-storage_uri uri\fP
+\f[CR]\-storage\-uri uri\fP
 .RS 4
 storage uri to access
 .RE

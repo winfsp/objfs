@@ -90,6 +90,9 @@ GENERAL OPTIONS
 ---------------
 The following options apply to all commands:
 
+`-accept-tls-cert`::
+    accept any TLS certificate presented by the server (insecure)
+    
 `-cache path`::
     path to file system cache
 
@@ -99,7 +102,7 @@ The following options apply to all commands:
 `-storage name`::
     storage name to access (default "onedrive")
 
-`-storage_uri uri`::
+`-storage-uri uri`::
     storage uri to access
 
 `-v`::

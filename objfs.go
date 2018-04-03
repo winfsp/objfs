@@ -29,6 +29,7 @@ import (
 	"github.com/billziss-gh/golib/cmd"
 	"github.com/billziss-gh/golib/errors"
 	"github.com/billziss-gh/objfs/auth"
+	"github.com/billziss-gh/objfs/httputil"
 	"github.com/billziss-gh/objfs/objio"
 )
 
@@ -38,6 +39,7 @@ var (
 	storageName    string
 	storageUri     string
 	storage        objio.ObjectStorage
+	acceptTlsCert  bool
 	verbose        bool
 	storageUriMap  = map[string]string{}
 	authSessionMap = map[string]func(auth.CredentialMap) (auth.Session, error){}
@@ -60,8 +62,10 @@ func init() {
 		"auth credentials `path` (keyring:service/user or /file/path)")
 	flag.StringVar(&storageName, "storage", defaultStorageName,
 		"storage `name` to access")
-	flag.StringVar(&storageUri, "storage_uri", "",
+	flag.StringVar(&storageUri, "storage-uri", "",
 		"storage `uri` to access")
+	flag.BoolVar(&acceptTlsCert, "accept-tls-cert", false,
+		"accept any TLS certificate presented by the server (insecure)")
 	flag.BoolVar(&verbose, "v", false,
 		"verbose")
 }
@@ -76,6 +80,10 @@ func usage(cmd *cmd.Cmd) {
 }
 
 func needvar(args ...interface{}) {
+	if acceptTlsCert {
+		httputil.SetInsecureSkipVerify(httputil.DefaultClient)
+	}
+
 	for _, a := range args {
 		switch a {
 		case &cachePath:
