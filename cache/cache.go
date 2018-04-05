@@ -454,7 +454,7 @@ func (self *Cache) Close(ino uint64) (err error) {
 	self.openmux.Unlock()
 
 	if closefile {
-		self.closeNode(n)
+		_ = self.closeNode(n)
 	}
 
 	return
@@ -952,8 +952,12 @@ func (self *Cache) readNodeFromStorage(
 	return
 }
 
-func (self *Cache) closeNode(node *node_t) {
+func (self *Cache) closeNode(node *node_t) (err error) {
 	if nil != node.File {
+		if node.Valid && !node.Deleted {
+			err = self.closeAndUpdateNode(node)
+		}
+
 		node.File.Close()
 		node.File = nil
 	}
@@ -961,6 +965,37 @@ func (self *Cache) closeNode(node *node_t) {
 	if node.Valid {
 		self.touchIno(node.Ino, false)
 	}
+
+	return
+}
+
+func (self *Cache) closeAndUpdateNode(node *node_t) (err error) {
+	pathKey := self.pathKey(node.Path)
+	self.lockPath(pathKey)
+	defer self.unlockPath(pathKey)
+
+	var fileinfo os.FileInfo
+	fileinfo, err = node.File.Stat()
+	if nil != err {
+		return
+	}
+
+	n := *node
+	n.Size = fileinfo.Size()
+	n.Mtime = fileinfo.ModTime()
+
+	k := []byte(pathKey)
+	err = self.database.Update(func(tx *bolt.Tx) (err error) {
+		ntx := nodetx_t{Tx: tx}
+		err = n.Put(&ntx, k)
+		return
+	})
+	if nil != err {
+		return
+	}
+
+	node.Size = n.Size
+	node.Mtime = n.Mtime
 
 	return
 }
