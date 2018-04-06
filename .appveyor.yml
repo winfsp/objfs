@@ -34,7 +34,7 @@ test_script:
 - echo %CRED_REFRESH_TOKEN% >>C:\projects\onedrive.txt
 
 # hard code fsreg parameters because appveyor does not like percents ("--VolumePrefix=%1 %2")
-- C:\projects\winfsp\tools\fsreg.bat objfs "C:\projects\go\src\github.com\billziss-gh\objfs\objfs.exe" "-credentials=C:\projects\onedrive.txt mount -o uid=11,gid=65792,VolumePrefix=/objfs/onedrive M:" "D:P(A;;RPWPLC;;;WD)"
+- C:\projects\winfsp\tools\fsreg.bat objfs "C:\projects\go\src\github.com\billziss-gh\objfs\objfs.exe" "-credentials=C:\projects\onedrive.txt mount -o uid=11,gid=65792,umask=0077,VolumePrefix=/objfs/onedrive M:" "D:P(A;;RPWPLC;;;WD)"
 
 - 'net use M: \\objfs\onedrive'
 - 'M: & cd'
