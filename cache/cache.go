@@ -216,7 +216,7 @@ func OpenCache(
 	})
 
 	if Activate == flag {
-		self.ResetCache(nil)
+		_ = self.resetCache(true, nil)
 
 		self.done = make(chan struct{})
 		self.wg.Add(1)
@@ -260,16 +260,7 @@ func (self *Cache) ListCache() (paths []string) {
 }
 
 func (self *Cache) ResetCache(progress func(path string)) (err error) {
-	err = self.uploadAll(progress)
-	if nil == err {
-		err = self.evictAll(progress)
-	}
-
-	if nil != err {
-		err = errors.New("", err)
-	}
-
-	return
+	return self.resetCache(true, progress)
 }
 
 func (self *Cache) CloseCache() (err error) {
@@ -277,7 +268,7 @@ func (self *Cache) CloseCache() (err error) {
 		close(self.done)
 		self.wg.Wait()
 
-		err = self.ResetCache(nil)
+		err = self.resetCache(true, nil)
 	}
 
 	err0 := self.database.Close()
@@ -1039,7 +1030,7 @@ func (self *Cache) touchIno(ino uint64, rw bool) {
 	self.lrumux.Unlock()
 }
 
-func (self *Cache) uploadOne(progress func(path string)) (err error) {
+func (self *Cache) uploadOne(force bool, progress func(path string)) (err error) {
 	self.lrumux.Lock()
 
 	var item *lruitem_t
@@ -1048,7 +1039,7 @@ func (self *Cache) uploadOne(progress func(path string)) (err error) {
 		var i *lruitem_t
 		i = (*lruitem_t)(containerOf(unsafe.Pointer(link), unsafe.Offsetof(i.link_t)))
 
-		if i.atime+int64(self.config.UploadDelay) < time.Now().UnixNano() {
+		if force || i.atime+int64(self.config.UploadDelay) < time.Now().UnixNano() {
 			i.Remove()
 			delete(self.rwmap, i.ino)
 			item = i
@@ -1174,9 +1165,9 @@ func (self *Cache) uploadOne(progress func(path string)) (err error) {
 	return
 }
 
-func (self *Cache) uploadAll(progress func(path string)) (err error) {
+func (self *Cache) uploadAll(force bool, progress func(path string)) (err error) {
 	for {
-		err = self.uploadOne(progress)
+		err = self.uploadOne(force, progress)
 		if nil != err {
 			break
 		}
@@ -1189,7 +1180,7 @@ func (self *Cache) uploadAll(progress func(path string)) (err error) {
 	return
 }
 
-func (self *Cache) evictOne(progress func(path string)) (err error) {
+func (self *Cache) evictOne(force bool, progress func(path string)) (err error) {
 	self.lrumux.Lock()
 
 	var item *lruitem_t
@@ -1198,7 +1189,7 @@ func (self *Cache) evictOne(progress func(path string)) (err error) {
 		var i *lruitem_t
 		i = (*lruitem_t)(containerOf(unsafe.Pointer(link), unsafe.Offsetof(i.link_t)))
 
-		if i.atime+int64(self.config.EvictDelay) < time.Now().UnixNano() {
+		if force || i.atime+int64(self.config.EvictDelay) < time.Now().UnixNano() {
 			i.Remove()
 			delete(self.romap, i.ino)
 			item = i
@@ -1279,9 +1270,9 @@ func (self *Cache) evictOne(progress func(path string)) (err error) {
 	return
 }
 
-func (self *Cache) evictAll(progress func(path string)) (err error) {
+func (self *Cache) evictAll(force bool, progress func(path string)) (err error) {
 	for {
-		err = self.evictOne(progress)
+		err = self.evictOne(force, progress)
 		if nil != err {
 			break
 		}
@@ -1289,6 +1280,19 @@ func (self *Cache) evictAll(progress func(path string)) (err error) {
 
 	if errNoItem == err {
 		err = nil
+	}
+
+	return
+}
+
+func (self *Cache) resetCache(force bool, progress func(path string)) (err error) {
+	err = self.uploadAll(force, progress)
+	if nil == err {
+		err = self.evictAll(force, progress)
+	}
+
+	if nil != err {
+		err = errors.New("", err)
 	}
 
 	return
@@ -1303,7 +1307,7 @@ func (self *Cache) loop() {
 	for {
 		select {
 		case <-ticker.C:
-			self.ResetCache(nil)
+			self.resetCache(false, nil)
 		case <-self.done:
 			return
 		}
