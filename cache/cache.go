@@ -1062,22 +1062,13 @@ func (self *Cache) uploadOne(force bool, progress func(path string)) (err error)
 		}
 	}()
 
-	n := node_t{}
-	err = self.database.View(func(tx *bolt.Tx) (err error) {
-		ntx := nodetx_t{Tx: tx}
-		err = n.GetWithIno(&ntx, item.ino)
-		return
-	})
-
+	n, pathKey, err := self.getLockedNodeWithIno(item.ino)
 	if nil != err {
 		if errno.ENOENT == err {
 			err = nil
 		}
 		return
 	}
-
-	pathKey := self.pathKey(n.Path)
-	self.lockPath(pathKey)
 	defer self.unlockPath(pathKey)
 
 	if n.Deleted {
@@ -1210,13 +1201,7 @@ func (self *Cache) evictOne(force bool, progress func(path string)) (err error) 
 		}
 	}()
 
-	n := node_t{}
-	err = self.database.View(func(tx *bolt.Tx) (err error) {
-		ntx := nodetx_t{Tx: tx}
-		err = n.GetWithIno(&ntx, item.ino)
-		return
-	})
-
+	n, pathKey, err := self.getLockedNodeWithIno(item.ino)
 	if nil != err {
 		if errno.ENOENT != err {
 			return
@@ -1227,9 +1212,6 @@ func (self *Cache) evictOne(force bool, progress func(path string)) (err error) 
 
 		return
 	}
-
-	pathKey := self.pathKey(n.Path)
-	self.lockPath(pathKey)
 	defer self.unlockPath(pathKey)
 
 	self.lrumux.Lock()
@@ -1283,6 +1265,40 @@ func (self *Cache) evictAll(force bool, progress func(path string)) (err error) 
 	}
 
 	return
+}
+
+// Get and lock node from ino; ensure that proper node.Path gets locked!
+func (self *Cache) getLockedNodeWithIno(ino uint64) (node *node_t, pathKey string, err error) {
+	pk0 := ""
+	for {
+		n := node_t{}
+		err = self.database.View(func(tx *bolt.Tx) (err error) {
+			ntx := nodetx_t{Tx: tx}
+			err = n.GetWithIno(&ntx, ino)
+			return
+		})
+
+		if nil != err {
+			if "" != pk0 {
+				self.unlockPath(pk0)
+			}
+			return
+		}
+
+		pk := self.pathKey(n.Path)
+		if pk0 == pk {
+			node = &n
+			pathKey = pk
+			return
+		}
+
+		if "" != pk0 {
+			self.unlockPath(pk0)
+		}
+		self.lockPath(pk)
+
+		pk0 = pk
+	}
 }
 
 func (self *Cache) resetCache(force bool, progress func(path string)) (err error) {
