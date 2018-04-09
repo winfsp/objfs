@@ -20,6 +20,10 @@ generate:
 build: registry.go
 	go build -ldflags "-s -w"
 
+.PHONY: racy
+racy: registry.go
+	go build -race -ldflags "-s -w"
+
 .PHONY: debug
 debug: registry.go
 	go build -tags debug -gcflags "-N -l"

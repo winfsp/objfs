@@ -21,7 +21,7 @@ install:
 - choco install winfsp --version=1.2.17346 -y
 
 build_script:
-- make
+- make racy
 
 test_script:
 - call "%VS140COMNTOOLS%\..\..\VC\vcvarsall.bat" x64
