@@ -275,7 +275,7 @@ func (self *objfs) Readdir(path string,
 	}
 
 	// on Windows only add dot entries for non-root
-	if onWindows && "/" == path {
+	if !onWindows || "/" != path {
 		fill(".", nil, 0)
 		fill("..", nil, 0)
 	}
