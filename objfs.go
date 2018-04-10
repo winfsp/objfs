@@ -124,16 +124,15 @@ func needvar(args ...interface{}) {
 				fail(err)
 			}
 			storage = s.(objio.ObjectStorage)
+			if trace.Verbose {
+				storage = &objio.TraceObjectStorage{ObjectStorage: storage}
+			}
 		}
 	}
 }
 
 func warn(err error) {
-	if trace.Verbose {
-		fmt.Fprintf(os.Stderr, "error: %+v\n", err)
-	} else {
-		fmt.Fprintf(os.Stderr, "error: %v\n", err)
-	}
+	fmt.Fprintf(os.Stderr, "error: %v\n", err)
 }
 
 func fail(err error) {

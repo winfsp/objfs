@@ -20,7 +20,6 @@ package fs
 import (
 	"github.com/billziss-gh/cgofuse/fuse"
 	"github.com/billziss-gh/golib/errors"
-	"github.com/billziss-gh/golib/trace"
 	"github.com/billziss-gh/objfs/errno"
 )
 
@@ -113,10 +112,6 @@ var errnomap = map[errno.Errno]int{
 func FuseErrc(err error) (errc int) {
 	if nil == err {
 		return
-	}
-
-	if trace.Verbose {
-		trace.Tracef(0, "%+v", err)
 	}
 
 	errc = -fuse.EIO
