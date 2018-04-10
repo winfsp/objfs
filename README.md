@@ -115,7 +115,7 @@ The Objfs cache was inspired by an early version of the Andrew File System (AFS)
 
 ### Diagnostics
 
-Objfs includes a tracing facility that can be used to troubleshoot problems, to gain insights into its internal workings, etc. This facility is enabled when then `-v` option is used.
+Objfs includes a tracing facility that can be used to troubleshoot problems, to gain insights into its internal workings, etc. This facility is enabled when the `-v` option is used.
 
 The environment variable `GOLIB_TRACE` controls which traces are enabled. This variable accepts a comma separated list of file-style patterns containing wildcards such as `*` and `?`.
 

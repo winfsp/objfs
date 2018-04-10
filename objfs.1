@@ -2,12 +2,12 @@
 .\"     Title: objfs
 .\"    Author: [see the "AUTHORS" section]
 .\" Generator: Asciidoctor 1.5.6.1
-.\"      Date: 2018-04-02
+.\"      Date: 2018-04-09
 .\"    Manual: \ \&
 .\"    Source: \ \&
 .\"  Language: English
 .\"
-.TH "OBJFS" "1" "2018-04-02" "\ \&" "\ \&"
+.TH "OBJFS" "1" "2018-04-09" "\ \&" "\ \&"
 .ie \n(.g .ds Aq \(aq
 .el       .ds Aq '
 .ss \n[.ss] 0
@@ -158,6 +158,39 @@ Objfs uses a local file cache to speed up file system operations. This caches fi
 .sp
 The Objfs cache was inspired by an early version of the Andrew File System (AFS). For more information see the paper \c
 .URL "http://pages.cs.wisc.edu/~remzi/OSTEP/dist\-afs.pdf" "" "."
+
+.br
+.SS "Diagnostics"
+.sp
+Objfs includes a tracing facility that can be used to troubleshoot problems, to gain insights into its internal workings, etc. This facility is enabled when the \f[CR]\-v\fP option is used.
+.sp
+The environment variable \f[CR]GOLIB_TRACE\fP controls which traces are enabled. This variable accepts a comma separated list of file\-style patterns containing wildcards such as \f[CR]*\fP and \f[CR]?\fP.
+.sp
+.if n \{\
+.RS 4
+.\}
+.nf
+$ export GOLIB_TRACE=pattern1,...,patternN
+.fi
+.if n \{\
+.RE
+.\}
+.sp
+Examples:
+.sp
+.if n \{\
+.RS 4
+.\}
+.nf
+$ export GOLIB_TRACE=github.com/billziss\-gh/objfs/fs.*      # file system traces
+$ export GOLIB_TRACE=github.com/billziss\-gh/objfs/objio.*   # object storage traces
+$ export GOLIB_TRACE=github.com/billziss\-gh/objfs/fs.*,github.com/billziss\-gh/objfs/objio.*
+$ ./objfs \-v \-credentials=TOKEN_PATH mount MOUNTPOINT
+.fi
+.if n \{\
+.RE
+.\}
+.sp
 
 .br
 .SH "GENERAL OPTIONS"

@@ -86,6 +86,27 @@ Objfs uses a local file cache to speed up file system operations. This caches fi
 The Objfs cache was inspired by an early version of the Andrew File System (AFS). For more information see the paper http://pages.cs.wisc.edu/~remzi/OSTEP/dist-afs.pdf.
 {blank}
 
+Diagnostics
+~~~~~~~~~~~
+
+Objfs includes a tracing facility that can be used to troubleshoot problems, to gain insights into its internal workings, etc. This facility is enabled when the `-v` option is used.
+
+The environment variable `GOLIB_TRACE` controls which traces are enabled. This variable accepts a comma separated list of file-style patterns containing wildcards such as `*` and `?`.
+
+----
+$ export GOLIB_TRACE=pattern1,...,patternN
+----
+
+Examples:
+
+----
+$ export GOLIB_TRACE=github.com/billziss-gh/objfs/fs.*      # file system traces
+$ export GOLIB_TRACE=github.com/billziss-gh/objfs/objio.*   # object storage traces
+$ export GOLIB_TRACE=github.com/billziss-gh/objfs/fs.*,github.com/billziss-gh/objfs/objio.*
+$ ./objfs -v -credentials=TOKEN_PATH mount MOUNTPOINT
+----
+{blank}
+
 GENERAL OPTIONS
 ---------------
 The following options apply to all commands:
