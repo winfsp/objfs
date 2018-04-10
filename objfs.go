@@ -28,6 +28,7 @@ import (
 	"github.com/billziss-gh/golib/appdata"
 	"github.com/billziss-gh/golib/cmd"
 	"github.com/billziss-gh/golib/errors"
+	"github.com/billziss-gh/golib/trace"
 	"github.com/billziss-gh/objfs/auth"
 	"github.com/billziss-gh/objfs/httputil"
 	"github.com/billziss-gh/objfs/objio"
@@ -40,7 +41,6 @@ var (
 	storageUri     string
 	storage        objio.ObjectStorage
 	acceptTlsCert  bool
-	verbose        bool
 	storageUriMap  = map[string]string{}
 	authSessionMap = map[string]func(auth.CredentialMap) (auth.Session, error){}
 )
@@ -66,7 +66,7 @@ func init() {
 		"storage `uri` to access")
 	flag.BoolVar(&acceptTlsCert, "accept-tls-cert", false,
 		"accept any TLS certificate presented by the server (insecure)")
-	flag.BoolVar(&verbose, "v", false,
+	flag.BoolVar(&trace.Verbose, "v", false,
 		"verbose")
 }
 
@@ -129,7 +129,7 @@ func needvar(args ...interface{}) {
 }
 
 func warn(err error) {
-	if verbose {
+	if trace.Verbose {
 		fmt.Fprintf(os.Stderr, "error: %+v\n", err)
 	} else {
 		fmt.Fprintf(os.Stderr, "error: %v\n", err)

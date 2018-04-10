@@ -1,5 +1,3 @@
-// +build !debug
-
 /*
  * trace.go
  *
@@ -19,12 +17,18 @@
 
 package fs
 
-func traceIgnore(...interface{}) {
-}
+import (
+	"fmt"
+
+	"github.com/billziss-gh/cgofuse/fuse"
+	"github.com/billziss-gh/golib/trace"
+)
 
 func Trace(vals ...interface{}) func(vals ...interface{}) {
-	return traceIgnore
+	uid, gid, _ := fuse.Getcontext()
+	return trace.Trace(1, fmt.Sprintf("[uid=%v,gid=%v]", uid, gid), vals...)
 }
 
 func Tracef(form string, vals ...interface{}) {
+	trace.Tracef(1, form, vals...)
 }

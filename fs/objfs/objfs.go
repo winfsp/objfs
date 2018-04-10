@@ -23,6 +23,7 @@ import (
 
 	"github.com/billziss-gh/cgofuse/fuse"
 	"github.com/billziss-gh/golib/errors"
+	"github.com/billziss-gh/golib/trace"
 	"github.com/billziss-gh/objfs/cache"
 	"github.com/billziss-gh/objfs/errno"
 	"github.com/billziss-gh/objfs/fs"
@@ -33,14 +34,10 @@ type objfs struct {
 	cache *cache.Cache
 }
 
-func (self *objfs) Init() {
-}
-
-func (self *objfs) Destroy() {
-}
-
 func (self *objfs) Statfs(path string, stat *fuse.Statfs_t) (errc int) {
-	defer fs.Trace(path)(&errc, stat)
+	if trace.Verbose {
+		defer fs.Trace(path)(&errc, stat)
+	}
 
 	info, err := self.cache.Statfs()
 	if nil != err {
@@ -53,7 +50,9 @@ func (self *objfs) Statfs(path string, stat *fuse.Statfs_t) (errc int) {
 }
 
 func (self *objfs) Mkdir(path string, mode uint32) (errc int) {
-	defer fs.Trace(path, mode)(&errc)
+	if trace.Verbose {
+		defer fs.Trace(path, mode)(&errc)
+	}
 
 	ino, err := self.cache.Open(path)
 	if nil != err {
@@ -70,7 +69,9 @@ func (self *objfs) Mkdir(path string, mode uint32) (errc int) {
 }
 
 func (self *objfs) Unlink(path string) (errc int) {
-	defer fs.Trace(path)(&errc)
+	if trace.Verbose {
+		defer fs.Trace(path)(&errc)
+	}
 
 	ino, err := self.cache.Open(path)
 	if nil != err {
@@ -87,7 +88,9 @@ func (self *objfs) Unlink(path string) (errc int) {
 }
 
 func (self *objfs) Rmdir(path string) (errc int) {
-	defer fs.Trace(path)(&errc)
+	if trace.Verbose {
+		defer fs.Trace(path)(&errc)
+	}
 
 	ino, err := self.cache.Open(path)
 	if nil != err {
@@ -104,7 +107,9 @@ func (self *objfs) Rmdir(path string) (errc int) {
 }
 
 func (self *objfs) Rename(oldpath string, newpath string) (errc int) {
-	defer fs.Trace(oldpath, newpath)(&errc)
+	if trace.Verbose {
+		defer fs.Trace(oldpath, newpath)(&errc)
+	}
 
 	ino, err := self.cache.Open(oldpath)
 	if nil != err {
@@ -121,13 +126,17 @@ func (self *objfs) Rename(oldpath string, newpath string) (errc int) {
 }
 
 func (self *objfs) Utimens(path string, tmsp []fuse.Timespec) (errc int) {
-	defer fs.Trace(path, tmsp)(&errc)
+	if trace.Verbose {
+		defer fs.Trace(path, tmsp)(&errc)
+	}
 
 	return -fuse.ENOSYS
 }
 
 func (self *objfs) Create(path string, flags int, mode uint32) (errc int, ino uint64) {
-	defer fs.Trace(path, flags, mode)(&errc, &ino)
+	if trace.Verbose {
+		defer fs.Trace(path, flags, mode)(&errc, &ino)
+	}
 
 	ino, err := self.cache.Open(path)
 	if nil != err {
@@ -144,7 +153,9 @@ func (self *objfs) Create(path string, flags int, mode uint32) (errc int, ino ui
 }
 
 func (self *objfs) Open(path string, flags int) (errc int, ino uint64) {
-	defer fs.Trace(path, flags)(&errc, &ino)
+	if trace.Verbose {
+		defer fs.Trace(path, flags)(&errc, &ino)
+	}
 
 	ino, err := self.cache.Open(path)
 	if nil != err {
@@ -161,7 +172,9 @@ func (self *objfs) Open(path string, flags int) (errc int, ino uint64) {
 }
 
 func (self *objfs) Getattr(path string, stat *fuse.Stat_t, ino uint64) (errc int) {
-	defer fs.Trace(path, ino)(&errc, stat)
+	if trace.Verbose {
+		defer fs.Trace(path, ino)(&errc, stat)
+	}
 
 	if ^uint64(0) == ino {
 		var err error
@@ -183,7 +196,9 @@ func (self *objfs) Getattr(path string, stat *fuse.Stat_t, ino uint64) (errc int
 }
 
 func (self *objfs) Truncate(path string, size int64, ino uint64) (errc int) {
-	defer fs.Trace(path, size, ino)(&errc)
+	if trace.Verbose {
+		defer fs.Trace(path, size, ino)(&errc)
+	}
 
 	if ^uint64(0) == ino {
 		var err error
@@ -203,7 +218,9 @@ func (self *objfs) Truncate(path string, size int64, ino uint64) (errc int) {
 }
 
 func (self *objfs) Read(path string, buff []byte, ofst int64, ino uint64) (n int) {
-	defer fs.Trace(path, ofst, ino)(&n)
+	if trace.Verbose {
+		defer fs.Trace(path, ofst, ino)(&n)
+	}
 
 	n, err := self.cache.ReadAt(ino, buff, ofst)
 	if nil != err && io.EOF != err {
@@ -214,7 +231,9 @@ func (self *objfs) Read(path string, buff []byte, ofst int64, ino uint64) (n int
 }
 
 func (self *objfs) Write(path string, buff []byte, ofst int64, ino uint64) (n int) {
-	defer fs.Trace(path, ofst, ino)(&n)
+	if trace.Verbose {
+		defer fs.Trace(path, ofst, ino)(&n)
+	}
 
 	n, err := self.cache.WriteAt(ino, buff, ofst)
 	if nil != err {
@@ -225,7 +244,9 @@ func (self *objfs) Write(path string, buff []byte, ofst int64, ino uint64) (n in
 }
 
 func (self *objfs) Release(path string, ino uint64) (errc int) {
-	defer fs.Trace(path, ino)(&errc)
+	if trace.Verbose {
+		defer fs.Trace(path, ino)(&errc)
+	}
 
 	err := self.cache.Close(ino)
 	if nil != err {
@@ -236,7 +257,9 @@ func (self *objfs) Release(path string, ino uint64) (errc int) {
 }
 
 func (self *objfs) Fsync(path string, datasync bool, ino uint64) (errc int) {
-	defer fs.Trace(path, datasync, ino)(&errc)
+	if trace.Verbose {
+		defer fs.Trace(path, datasync, ino)(&errc)
+	}
 
 	err := self.cache.Sync(ino)
 	if nil != err {
@@ -247,7 +270,9 @@ func (self *objfs) Fsync(path string, datasync bool, ino uint64) (errc int) {
 }
 
 func (self *objfs) Opendir(path string) (errc int, ino uint64) {
-	defer fs.Trace(path)(&errc, &ino)
+	if trace.Verbose {
+		defer fs.Trace(path)(&errc, &ino)
+	}
 
 	ino, err := self.cache.Open(path)
 	if nil != err {
@@ -267,7 +292,9 @@ func (self *objfs) Readdir(path string,
 	fill func(name string, stat *fuse.Stat_t, ofst int64) bool,
 	ofst int64,
 	ino uint64) (errc int) {
-	defer fs.Trace(path, ofst, ino)(&errc)
+	if trace.Verbose {
+		defer fs.Trace(path, ofst, ino)(&errc)
+	}
 
 	infos, err := self.cache.Readdir(ino, 0)
 	if nil != err {
@@ -294,7 +321,9 @@ func (self *objfs) Readdir(path string,
 }
 
 func (self *objfs) Releasedir(path string, ino uint64) (errc int) {
-	defer fs.Trace(path, ino)(&errc)
+	if trace.Verbose {
+		defer fs.Trace(path, ino)(&errc)
+	}
 
 	err := self.cache.Close(ino)
 	if nil != err {
