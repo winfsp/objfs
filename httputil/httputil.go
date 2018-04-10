@@ -18,25 +18,31 @@
 package httputil
 
 import (
-	"crypto/tls"
 	"errors" // remain compatible with package http
 	"net/http"
 	"sync"
 )
 
-var (
-	redirMap = map[*http.Request]error{}
-	redirMux = sync.Mutex{}
-)
+var DefaultTransport = NewTransport()
+var DefaultClient = NewClient(DefaultTransport)
 
-func checkRedirect(req *http.Request, via []*http.Request) error {
-	// remain compatible with package http
-	if len(via) >= 10 {
-		return errors.New("stopped after 10 redirects")
+func NewTransport() *http.Transport {
+	transport := http.DefaultTransport.(*http.Transport)
+	return &http.Transport{
+		Proxy:                 transport.Proxy,
+		DialContext:           transport.DialContext,
+		MaxIdleConns:          transport.MaxIdleConns,
+		IdleConnTimeout:       transport.IdleConnTimeout,
+		TLSHandshakeTimeout:   transport.TLSHandshakeTimeout,
+		ExpectContinueTimeout: transport.ExpectContinueTimeout,
 	}
-	redirMux.Lock()
-	defer redirMux.Unlock()
-	return redirMap[via[0]]
+}
+
+func NewClient(transport *http.Transport) *http.Client {
+	return &http.Client{
+		CheckRedirect: checkRedirect,
+		Transport:     transport,
+	}
 }
 
 func AllowRedirect(req *http.Request, allow bool) {
@@ -49,31 +55,15 @@ func AllowRedirect(req *http.Request, allow bool) {
 	}
 }
 
-func NewClient() *http.Client {
-	return &http.Client{
-		CheckRedirect: checkRedirect,
+func checkRedirect(req *http.Request, via []*http.Request) error {
+	// remain compatible with package http
+	if len(via) >= 10 {
+		return errors.New("stopped after 10 redirects")
 	}
+	redirMux.Lock()
+	defer redirMux.Unlock()
+	return redirMap[via[0]]
 }
 
-func SetInsecureSkipVerify(client *http.Client) {
-	if nil == client.Transport {
-		transport := http.DefaultTransport.(*http.Transport)
-		client.Transport = &http.Transport{
-			Proxy:                 transport.Proxy,
-			DialContext:           transport.DialContext,
-			MaxIdleConns:          transport.MaxIdleConns,
-			IdleConnTimeout:       transport.IdleConnTimeout,
-			TLSHandshakeTimeout:   transport.TLSHandshakeTimeout,
-			ExpectContinueTimeout: transport.ExpectContinueTimeout,
-			TLSClientConfig:       &tls.Config{InsecureSkipVerify: true},
-		}
-	} else if transport, ok := client.Transport.(*http.Transport); ok {
-		if nil == transport.TLSClientConfig {
-			transport.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
-		} else {
-			transport.TLSClientConfig.InsecureSkipVerify = true
-		}
-	}
-}
-
-var DefaultClient = NewClient()
+var redirMap = map[*http.Request]error{}
+var redirMux = sync.Mutex{}

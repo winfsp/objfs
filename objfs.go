@@ -20,6 +20,7 @@
 package main
 
 import (
+	"crypto/tls"
 	"flag"
 	"fmt"
 	"os"
@@ -81,7 +82,7 @@ func usage(cmd *cmd.Cmd) {
 
 func needvar(args ...interface{}) {
 	if acceptTlsCert {
-		httputil.SetInsecureSkipVerify(httputil.DefaultClient)
+		httputil.DefaultTransport.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
 	}
 
 	for _, a := range args {
