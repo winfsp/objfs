@@ -34,53 +34,55 @@ func traceStg(val0 interface{}, vals ...interface{}) func(vals ...interface{}) {
 }
 
 func (self *TraceObjectStorage) Info(getsize bool) (info StorageInfo, err error) {
-	defer traceStg(self.ObjectStorage, getsize)(traceWrap{&info}, &err)
+	defer traceStg(self.ObjectStorage, getsize)(traceWrap{&info}, traceWrap{&err})
 	return self.ObjectStorage.Info(getsize)
 }
 
 func (self *TraceObjectStorage) List(
 	prefix string, imarker string, maxcount int) (
 	omarker string, infos []ObjectInfo, err error) {
-	defer traceStg(self.ObjectStorage, prefix, imarker, maxcount)(&omarker, traceWrap{&infos}, &err)
+	defer traceStg(
+		self.ObjectStorage, prefix, imarker, maxcount)(
+		&omarker, traceWrap{&infos}, traceWrap{&err})
 	return self.ObjectStorage.List(prefix, imarker, maxcount)
 }
 
 func (self *TraceObjectStorage) Stat(name string) (info ObjectInfo, err error) {
-	defer traceStg(self.ObjectStorage, name)(traceWrap{&info}, &err)
+	defer traceStg(self.ObjectStorage, name)(traceWrap{&info}, traceWrap{&err})
 	return self.ObjectStorage.Stat(name)
 }
 
 func (self *TraceObjectStorage) Mkdir(prefix string) (info ObjectInfo, err error) {
-	defer traceStg(self.ObjectStorage, prefix)(traceWrap{&info}, &err)
+	defer traceStg(self.ObjectStorage, prefix)(traceWrap{&info}, traceWrap{&err})
 	return self.ObjectStorage.Mkdir(prefix)
 }
 
 func (self *TraceObjectStorage) Rmdir(prefix string) (err error) {
-	defer traceStg(self.ObjectStorage, prefix)(&err)
+	defer traceStg(self.ObjectStorage, prefix)(traceWrap{&err})
 	return self.ObjectStorage.Rmdir(prefix)
 }
 
 func (self *TraceObjectStorage) Remove(name string) (err error) {
-	defer traceStg(self.ObjectStorage, name)(&err)
+	defer traceStg(self.ObjectStorage, name)(traceWrap{&err})
 	return self.ObjectStorage.Remove(name)
 }
 
 func (self *TraceObjectStorage) Rename(oldname string, newname string) (err error) {
-	defer traceStg(self.ObjectStorage, oldname, newname)(&err)
+	defer traceStg(self.ObjectStorage, oldname, newname)(traceWrap{&err})
 	return self.ObjectStorage.Rename(oldname, newname)
 }
 
 func (self *TraceObjectStorage) OpenRead(
 	name string, sig string) (
 	info ObjectInfo, reader io.ReadCloser, err error) {
-	defer traceStg(self.ObjectStorage, name, sig)(traceWrap{&info}, &err)
+	defer traceStg(self.ObjectStorage, name, sig)(traceWrap{&info}, traceWrap{&err})
 	return self.ObjectStorage.OpenRead(name, sig)
 }
 
 func (self *TraceObjectStorage) OpenWrite(
 	name string, size int64) (
 	writer WriteWaiter, err error) {
-	defer traceStg(self.ObjectStorage, name, size)(&err)
+	defer traceStg(self.ObjectStorage, name, size)(traceWrap{&err})
 	writer, err = self.ObjectStorage.OpenWrite(name, size)
 	if nil == err {
 		writer = &traceWriteWaiter{writer}
@@ -88,14 +90,12 @@ func (self *TraceObjectStorage) OpenWrite(
 	return
 }
 
-var _ ObjectStorage = (*TraceObjectStorage)(nil)
-
 type traceWriteWaiter struct {
 	WriteWaiter
 }
 
 func (self *traceWriteWaiter) Wait() (info ObjectInfo, err error) {
-	defer traceStg(self.WriteWaiter)(traceWrap{&info}, &err)
+	defer traceStg(self.WriteWaiter)(traceWrap{&info}, traceWrap{&err})
 	return self.WriteWaiter.Wait()
 }
 
@@ -105,6 +105,8 @@ type traceWrap struct {
 
 func (t traceWrap) GoString() string {
 	switch i := t.v.(type) {
+	case *error:
+		return fmt.Sprintf("error(%v)", *i)
 	case *StorageInfo:
 		return fmt.Sprintf("%#v", *i)
 	case *ObjectInfo:

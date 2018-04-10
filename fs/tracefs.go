@@ -195,5 +195,3 @@ func (self *TraceFs) Listxattr(path string, fill func(name string) bool) (errc i
 	defer traceFuse(path)(&errc)
 	return self.FileSystemInterface.Listxattr(path, fill)
 }
-
-var _ fuse.FileSystemInterface = (*TraceFs)(nil)
