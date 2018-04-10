@@ -18,8 +18,6 @@
 package objio
 
 import (
-	"io"
-
 	"github.com/billziss-gh/objfs/errno"
 )
 
@@ -33,7 +31,7 @@ func (self *readOnlyStorageInfo) IsReadOnly() bool {
 
 // ReadOnlyStorage wraps a storage and provides read-only access to it.
 type ReadOnlyStorage struct {
-	Storage ObjectStorage
+	ObjectStorage
 }
 
 // Info gets storage information. The getsize parameter instructs the
@@ -41,33 +39,11 @@ type ReadOnlyStorage struct {
 //
 // The ReadOnly storage implementation returns true for IsReadOnly.
 func (self *ReadOnlyStorage) Info(getsize bool) (info StorageInfo, err error) {
-	info, err = self.Storage.Info(getsize)
+	info, err = self.Info(getsize)
 	if nil == err {
 		info = &readOnlyStorageInfo{info}
 	}
 	return
-}
-
-// IsReadOnly determines if the storage is read-only.
-//
-// The ReadOnly storage implementation returns true.
-func (self *ReadOnlyStorage) IsReadOnly() bool {
-	return true
-}
-
-// List lists all objects that have names with the specified prefix.
-// A marker can be used to continue a paginated listing. The listing
-// will contain up to maxcount items; a 0 specifies no limit (but the
-// underlying storage may still limit the number of items returned).
-// List returns an (optionally empty) marker and a slice of ObjectInfo.
-func (self *ReadOnlyStorage) List(
-	prefix string, marker string, maxcount int) (string, []ObjectInfo, error) {
-	return self.Storage.List(prefix, marker, maxcount)
-}
-
-// Stat gets object information.
-func (self *ReadOnlyStorage) Stat(name string) (ObjectInfo, error) {
-	return self.Storage.Stat(name)
 }
 
 // Mkdir makes an object directory if the storage supports it.
@@ -96,17 +72,6 @@ func (self *ReadOnlyStorage) Remove(name string) error {
 // The ReadOnly storage implementation returns errno.EROFS.
 func (self *ReadOnlyStorage) Rename(oldname string, newname string) error {
 	return errno.EROFS
-}
-
-// OpenRead opens an object for reading. If sig is not empty, OpenRead
-// opens the object only if its current signature is different from sig.
-// It returns the current object sig and an io.ReadCloser or any error;
-// if the object is not opened because of a matching non-empty sig, a nil
-// io.ReadCloser and nil error are returned.
-//
-// The returned io.ReadCloser may also support the io.ReaderAt interface.
-func (self *ReadOnlyStorage) OpenRead(name string, sig string) (ObjectInfo, io.ReadCloser, error) {
-	return self.Storage.OpenRead(name, sig)
 }
 
 // OpenWrite opens an object for writing. The parameter size specifies
