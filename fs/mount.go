@@ -1,5 +1,5 @@
 /*
- * fs.go
+ * mount.go
  *
  * Copyright 2018 Bill Zissimopoulos
  */
@@ -22,6 +22,7 @@ import (
 
 	"github.com/billziss-gh/cgofuse/fuse"
 	"github.com/billziss-gh/golib/errors"
+	"github.com/billziss-gh/golib/trace"
 	"github.com/billziss-gh/objfs/errno"
 	"github.com/billziss-gh/objfs/objio"
 	"github.com/billziss-gh/objfs/objreg"
@@ -41,6 +42,10 @@ func Mount(fsys interface{}, mountpoint string, opts []string) error {
 	cins := false
 	if i, ok := fsys.(FileSystemCaseInsensitive); ok {
 		cins = i.IsCaseInsensitive()
+	}
+
+	if trace.Verbose {
+		fsif = &TraceFs{FileSystemInterface: fsif}
 	}
 
 	host := fuse.NewFileSystemHost(fsif)
