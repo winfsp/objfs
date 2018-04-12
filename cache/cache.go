@@ -39,6 +39,8 @@ import (
 	"github.com/boltdb/bolt"
 )
 
+const Version = 1 // bump version when database format changes
+
 const (
 	DefaultLoopPeriod  = time.Second * 10
 	DefaultUploadDelay = DefaultLoopPeriod
@@ -129,6 +131,34 @@ func OpenCache(
 	}
 
 	err = database.Update(func(tx *bolt.Tx) (err error) {
+		metaname := []byte("m")
+		vername := []byte("version")
+
+		var verbuf [8]byte
+		putUint64(verbuf[:], 0, Version)
+
+		var version []byte
+		meta := tx.Bucket(metaname)
+		if nil != meta {
+			version = meta.Get(vername)
+		} else if nil == tx.Bucket(idxname) {
+			meta, err = tx.CreateBucket(metaname)
+			if nil != err {
+				return
+			}
+
+			version = verbuf[:]
+			err = meta.Put(vername, version)
+			if nil != err {
+				return
+			}
+		}
+
+		if !bytes.Equal(verbuf[:], version) {
+			err = errors.New("incorrect database version")
+			return
+		}
+
 		_, err = tx.CreateBucketIfNotExists(idxname)
 		if nil == err {
 			_, err = tx.CreateBucketIfNotExists(catname)
