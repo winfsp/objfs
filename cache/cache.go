@@ -597,24 +597,65 @@ func (self *Cache) removeNode(node *node_t, dir bool) (err error) {
 		return
 	}
 
+	k := []byte(pathKey)
+
+	if node.Valid {
+		if dir && !node.IsDir {
+			err = errno.ENOTDIR
+			return
+		} else if !dir && node.IsDir {
+			err = errno.EISDIR
+			return
+		}
+
+		nodecnt := 0
+		err = self.database.View(func(tx *bolt.Tx) (err error) {
+			ntx := nodetx_t{Tx: tx}
+
+			cursor := ntx.Cat().Cursor()
+			for i, _ := cursor.Seek(k); nil != i && 1 >= nodecnt; i, _ = cursor.Next() {
+				if !pathKeyHasPrefix(i, k) {
+					break
+				}
+				nodecnt++
+			}
+
+			return
+		})
+		if 1 < nodecnt {
+			err = errno.ENOTEMPTY
+			return
+		}
+	}
+
 	if dir {
 		err = self.storage.Rmdir(node.Path)
 	} else {
 		err = self.storage.Remove(node.Path)
 	}
 	if nil != err {
-		return
+		if errors.HasAttachment(err, errno.ENOENT) {
+			// Our view of the file system namespace is inconsistent with the one
+			// in the object storage.
+			//
+			// For Remove we will process ENOENT as if nothing has happened, but
+			// we will remember to return ENOENT in the end.
+		} else {
+			return
+		}
 	}
 
-	k := []byte(pathKey)
-	err = self.database.Update(func(tx *bolt.Tx) (err error) {
+	err0 := self.database.Update(func(tx *bolt.Tx) (err error) {
 		ntx := nodetx_t{Tx: tx}
 		err = (*node_t)(nil).Put(&ntx, k)
 		return
 	})
 
-	if nil == err {
+	if nil == err0 {
 		node.Deleted = true
+	}
+	if nil == err {
+		err = err0
 	}
 
 	return
@@ -653,6 +694,16 @@ func (self *Cache) renameNode(node *node_t, newpath string) (err error) {
 
 	err = self.storage.Rename(oldpath, newpath)
 	if nil != err {
+		if errors.HasAttachment(err, errno.ENOENT) {
+			// Our view of the file system namespace is inconsistent with the one
+			// in the object storage.
+			//
+			// For Rename we will translate ENOENT to EPERM. This is to minimize
+			// confusion to the user if we returned ENOENT and then the user saw
+			// that the file/directory is still there!
+			err = errno.EPERM
+		}
+
 		return
 	}
 
