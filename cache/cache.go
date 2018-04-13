@@ -743,29 +743,38 @@ func (self *Cache) statNode(node *node_t) (info objio.ObjectInfo, err error) {
 			return
 		}
 
-		var i objio.ObjectInfo
-		i, err = self.storage.Stat(node.Path)
+		err = self.statNodeNoLock(node, pathKey)
 		if nil != err {
 			return
 		}
-
-		n := *node
-		n.CopyStat(i)
-
-		k := []byte(pathKey)
-		err = self.database.Update(func(tx *bolt.Tx) (err error) {
-			ntx := nodetx_t{Tx: tx}
-			err = n.Put(&ntx, k)
-			return
-		})
-		if nil != err {
-			return
-		}
-
-		node.CopyStat(i)
 	}
 
 	info, err = node.Stat()
+
+	return
+}
+
+func (self *Cache) statNodeNoLock(node *node_t, pathKey string) (err error) {
+	var i objio.ObjectInfo
+	i, err = self.storage.Stat(node.Path)
+	if nil != err {
+		return
+	}
+
+	n := *node
+	n.CopyStat(i)
+
+	k := []byte(pathKey)
+	err = self.database.Update(func(tx *bolt.Tx) (err error) {
+		ntx := nodetx_t{Tx: tx}
+		err = n.Put(&ntx, k)
+		return
+	})
+	if nil != err {
+		return
+	}
+
+	node.CopyStat(i)
 
 	return
 }
