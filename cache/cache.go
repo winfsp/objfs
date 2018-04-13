@@ -42,15 +42,19 @@ import (
 const Version = 1 // bump version when database format changes
 
 const (
-	DefaultLoopPeriod  = time.Second * 10
-	DefaultUploadDelay = DefaultLoopPeriod
-	DefaultEvictDelay  = DefaultLoopPeriod * 3
+	DefaultNegPathTimeout  = time.Second * 3
+	DefaultNegPathMaxCount = 100
+	DefaultLoopPeriod      = time.Second * 10
+	DefaultUploadDelay     = DefaultLoopPeriod
+	DefaultEvictDelay      = DefaultLoopPeriod * 3
 )
 
 type Config struct {
-	LoopPeriod  time.Duration
-	UploadDelay time.Duration
-	EvictDelay  time.Duration
+	NegPathTimeout  time.Duration
+	NegPathMaxCount int
+	LoopPeriod      time.Duration
+	UploadDelay     time.Duration
+	EvictDelay      time.Duration
 }
 
 const (
@@ -72,6 +76,9 @@ type Cache struct {
 	pathmap   map[string]*pathmux_t
 	openmux   sync.Mutex
 	openmap   map[uint64]*node_t
+	negmux    sync.Mutex
+	negmap    map[string]*negitem_t
+	neglst    link_t
 	lrumux    sync.Mutex
 	rwmap     map[uint64]*lruitem_t
 	rwlst     link_t
@@ -177,15 +184,23 @@ func OpenCache(
 		isCaseIns: isCaseIns,
 		pathmap:   map[string]*pathmux_t{},
 		openmap:   map[uint64]*node_t{},
+		negmap:    map[string]*negitem_t{},
 		rwmap:     map[uint64]*lruitem_t{},
 		romap:     map[uint64]*lruitem_t{},
 		wg:        sync.WaitGroup{},
 	}
+	self.neglst.Init()
 	self.rwlst.Init()
 	self.rolst.Init()
 
 	if nil != config {
 		self.config = *config
+	}
+	if 0 >= self.config.NegPathTimeout {
+		self.config.NegPathTimeout = DefaultNegPathTimeout
+	}
+	if 0 >= self.config.NegPathMaxCount {
+		self.config.NegPathMaxCount = DefaultNegPathMaxCount
 	}
 	if 0 >= self.config.LoopPeriod {
 		self.config.LoopPeriod = DefaultLoopPeriod
@@ -584,6 +599,8 @@ func (self *Cache) makeNode(node *node_t, dir bool) (err error) {
 
 	node.CopyStat(info)
 
+	self.removeNegPath(pathKey)
+
 	return
 }
 
@@ -653,6 +670,7 @@ func (self *Cache) removeNode(node *node_t, dir bool) (err error) {
 
 	if nil == err0 {
 		node.Deleted = true
+		self.addNegPath(pathKey)
 	}
 	if nil == err {
 		err = err0
@@ -776,6 +794,11 @@ func (self *Cache) renameNode(node *node_t, newpath string) (err error) {
 	}
 	self.openmux.Unlock()
 
+	if pathKey != newpathKey {
+		self.removeAllNegPath(newpathKey)
+		self.addNegPath(pathKey)
+	}
+
 	return
 }
 
@@ -802,9 +825,18 @@ func (self *Cache) statNode(node *node_t) (info objio.ObjectInfo, err error) {
 }
 
 func (self *Cache) statNodeNoLock(node *node_t, pathKey string) (err error) {
+	if self.isNegPath(pathKey) {
+		err = errno.ENOENT
+		return
+	}
+
 	var i objio.ObjectInfo
 	i, err = self.storage.Stat(node.Path)
 	if nil != err {
+		if errors.HasAttachment(err, errno.ENOENT) {
+			self.addNegPath(pathKey)
+		}
+
 		return
 	}
 
@@ -822,6 +854,8 @@ func (self *Cache) statNodeNoLock(node *node_t, pathKey string) (err error) {
 	}
 
 	node.CopyStat(i)
+
+	self.removeNegPath(pathKey)
 
 	return
 }
@@ -908,6 +942,8 @@ func (self *Cache) readdirNode(node *node_t, maxcount int) (infos []objio.Object
 		self.touchIno(ino, false)
 	}
 
+	self.removeNegPath(pathKey)
+
 	return
 }
 
@@ -954,6 +990,8 @@ func (self *Cache) performFileIoOnNode(
 		}
 
 		node.File = file
+
+		self.removeNegPath(pathKey)
 	}
 
 	if nil != node.File {
@@ -1075,6 +1113,72 @@ func (self *Cache) closeAndUpdateNode(node *node_t) (err error) {
 	node.Mtime = n.Mtime
 
 	return
+}
+
+func (self *Cache) isNegPath(pathKey string) (ok bool) {
+	self.negmux.Lock()
+
+	item, ok := self.negmap[pathKey]
+	if ok {
+		if item.atime+int64(self.config.NegPathTimeout) < time.Now().UnixNano() {
+			item.Remove()
+			delete(self.negmap, pathKey)
+			ok = false
+		}
+	}
+
+	self.negmux.Unlock()
+
+	return
+}
+
+func (self *Cache) addNegPath(pathKey string) {
+	self.negmux.Lock()
+
+	item := self.negmap[pathKey]
+	if nil != item {
+		item.Remove()
+	} else {
+		if self.config.NegPathMaxCount <= len(self.negmap) {
+			link := self.neglst.next
+			if &self.neglst != link {
+				var i *negitem_t
+				i = (*negitem_t)(containerOf(unsafe.Pointer(link), unsafe.Offsetof(i.link_t)))
+				i.Remove()
+				delete(self.negmap, i.pathKey)
+			}
+		}
+
+		item = &negitem_t{pathKey: pathKey}
+		self.negmap[item.pathKey] = item
+	}
+
+	item.atime = time.Now().UnixNano()
+	item.InsertTail(&self.neglst)
+
+	self.negmux.Unlock()
+}
+
+func (self *Cache) removeNegPath(pathKey string) {
+	self.negmux.Lock()
+
+	item, ok := self.negmap[pathKey]
+	if ok {
+		item.Remove()
+		delete(self.negmap, pathKey)
+	}
+
+	self.negmux.Unlock()
+}
+
+func (self *Cache) removeAllNegPath(pathKey string) {
+	self.negmux.Lock()
+
+	// just throw away the whole map for now!
+	self.negmap = map[string]*negitem_t{}
+	self.neglst.Init()
+
+	self.negmux.Unlock()
 }
 
 func (self *Cache) touchIno(ino uint64, rw bool) {
@@ -1564,6 +1668,12 @@ func normalizeCase(s string) string {
 type pathmux_t struct {
 	mux    sync.RWMutex
 	refcnt int
+}
+
+type negitem_t struct {
+	link_t
+	pathKey string
+	atime   int64
 }
 
 type lruitem_t struct {

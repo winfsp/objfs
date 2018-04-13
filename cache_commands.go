@@ -28,6 +28,7 @@ import (
 	"github.com/billziss-gh/golib/cmd"
 	"github.com/billziss-gh/golib/errors"
 	"github.com/billziss-gh/objfs/cache"
+	"github.com/billziss-gh/objfs/objio"
 )
 
 func init() {
@@ -85,7 +86,8 @@ func CacheLs(cmd *cmd.Cmd, args []string) {
 	for _, path := range cmd.Flag.Args() {
 		ino, err := c.Open(path)
 		if nil == err {
-			infos, err := c.Readdir(ino, 0)
+			var infos []objio.ObjectInfo
+			infos, err = c.Readdir(ino, 0)
 			if nil == err {
 				for _, info := range infos {
 					printObjectInfo(info, long)
@@ -124,7 +126,8 @@ func CacheStat(cmd *cmd.Cmd, args []string) {
 	for _, path := range cmd.Flag.Args() {
 		ino, err := c.Open(path)
 		if nil == err {
-			info, err := c.Stat(ino)
+			var info objio.ObjectInfo
+			info, err = c.Stat(ino)
 			if nil == err {
 				printObjectInfo(info, long)
 			}
