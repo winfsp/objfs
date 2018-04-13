@@ -544,6 +544,8 @@ func (self *Cache) makeNode(node *node_t, dir bool) (err error) {
 		return
 	}
 
+	_ = self.statNodeNoLock(node, pathKey)
+
 	if node.Valid {
 		err = errno.EEXIST
 		return
@@ -553,12 +555,6 @@ func (self *Cache) makeNode(node *node_t, dir bool) (err error) {
 	if dir {
 		info, err = self.storage.Mkdir(node.Path)
 	} else {
-		_, err = self.storage.Stat(node.Path)
-		if nil == err {
-			err = errno.EEXIST
-			return
-		}
-
 		var writer objio.WriteWaiter
 		writer, err = self.storage.OpenWrite(node.Path, 0)
 		if nil != err {
