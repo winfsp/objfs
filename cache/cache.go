@@ -76,9 +76,7 @@ type Cache struct {
 	pathmap   map[string]*pathmux_t
 	openmux   sync.Mutex
 	openmap   map[uint64]*node_t
-	negmux    sync.Mutex
-	negmap    map[string]*negitem_t
-	neglst    link_t
+	negpres   *pathPresenceCache
 	lrumux    sync.Mutex
 	rwmap     map[uint64]*lruitem_t
 	rwlst     link_t
@@ -184,12 +182,10 @@ func OpenCache(
 		isCaseIns: isCaseIns,
 		pathmap:   map[string]*pathmux_t{},
 		openmap:   map[uint64]*node_t{},
-		negmap:    map[string]*negitem_t{},
 		rwmap:     map[uint64]*lruitem_t{},
 		romap:     map[uint64]*lruitem_t{},
 		wg:        sync.WaitGroup{},
 	}
-	self.neglst.Init()
 	self.rwlst.Init()
 	self.rolst.Init()
 
@@ -211,6 +207,8 @@ func OpenCache(
 	if 0 >= self.config.EvictDelay {
 		self.config.EvictDelay = DefaultEvictDelay
 	}
+
+	self.negpres = newPathPresenceCache(self.config.NegPathTimeout, self.config.NegPathMaxCount)
 
 	self.database.View(func(tx *bolt.Tx) (err error) {
 		ntx := nodetx_t{Tx: tx}
@@ -1129,69 +1127,19 @@ func (self *Cache) closeAndUpdateNode(node *node_t) (err error) {
 }
 
 func (self *Cache) isNegPath(pathKey string) (ok bool) {
-	self.negmux.Lock()
-
-	item, ok := self.negmap[pathKey]
-	if ok {
-		if item.atime+int64(self.config.NegPathTimeout) < time.Now().UnixNano() {
-			item.Remove()
-			delete(self.negmap, pathKey)
-			ok = false
-		}
-	}
-
-	self.negmux.Unlock()
-
-	return
+	return self.negpres.hasPath(pathKey)
 }
 
 func (self *Cache) addNegPath(pathKey string) {
-	self.negmux.Lock()
-
-	item := self.negmap[pathKey]
-	if nil != item {
-		item.Remove()
-	} else {
-		if self.config.NegPathMaxCount <= len(self.negmap) {
-			link := self.neglst.next
-			if &self.neglst != link {
-				var i *negitem_t
-				i = (*negitem_t)(containerOf(unsafe.Pointer(link), unsafe.Offsetof(i.link_t)))
-				i.Remove()
-				delete(self.negmap, i.pathKey)
-			}
-		}
-
-		item = &negitem_t{pathKey: pathKey}
-		self.negmap[item.pathKey] = item
-	}
-
-	item.atime = time.Now().UnixNano()
-	item.InsertTail(&self.neglst)
-
-	self.negmux.Unlock()
+	self.negpres.addPath(pathKey)
 }
 
 func (self *Cache) removeNegPath(pathKey string) {
-	self.negmux.Lock()
-
-	item, ok := self.negmap[pathKey]
-	if ok {
-		item.Remove()
-		delete(self.negmap, pathKey)
-	}
-
-	self.negmux.Unlock()
+	self.negpres.removePath(pathKey)
 }
 
 func (self *Cache) removeAllNegPath(pathKey string) {
-	self.negmux.Lock()
-
-	// just throw away the whole map for now!
-	self.negmap = map[string]*negitem_t{}
-	self.neglst.Init()
-
-	self.negmux.Unlock()
+	self.negpres.removeAllPath(pathKey)
 }
 
 func (self *Cache) touchIno(ino uint64, rw bool) {
@@ -1678,12 +1626,97 @@ func normalizeCase(s string) string {
 	return b.String()
 }
 
+type pathPresenceCache struct {
+	pathTimeout  time.Duration
+	pathMaxCount int
+	presmux      sync.Mutex
+	presmap      map[string]*pathitem_t
+	preslst      link_t
+}
+
+func (self *pathPresenceCache) hasPath(pathKey string) (ok bool) {
+	self.presmux.Lock()
+
+	item, ok := self.presmap[pathKey]
+	if ok {
+		if item.atime+int64(self.pathTimeout) < time.Now().UnixNano() {
+			item.Remove()
+			delete(self.presmap, pathKey)
+			ok = false
+		}
+	}
+
+	self.presmux.Unlock()
+
+	return
+}
+
+func (self *pathPresenceCache) addPath(pathKey string) {
+	self.presmux.Lock()
+
+	item := self.presmap[pathKey]
+	if nil != item {
+		item.Remove()
+	} else {
+		if self.pathMaxCount <= len(self.presmap) {
+			link := self.preslst.next
+			if &self.preslst != link {
+				var i *pathitem_t
+				i = (*pathitem_t)(containerOf(unsafe.Pointer(link), unsafe.Offsetof(i.link_t)))
+				i.Remove()
+				delete(self.presmap, i.pathKey)
+			}
+		}
+
+		item = &pathitem_t{pathKey: pathKey}
+		self.presmap[item.pathKey] = item
+	}
+
+	item.atime = time.Now().UnixNano()
+	item.InsertTail(&self.preslst)
+
+	self.presmux.Unlock()
+}
+
+func (self *pathPresenceCache) removePath(pathKey string) {
+	self.presmux.Lock()
+
+	item, ok := self.presmap[pathKey]
+	if ok {
+		item.Remove()
+		delete(self.presmap, pathKey)
+	}
+
+	self.presmux.Unlock()
+}
+
+func (self *pathPresenceCache) removeAllPath(pathKey string) {
+	self.presmux.Lock()
+
+	// just throw away the whole map for now!
+	self.presmap = map[string]*pathitem_t{}
+	self.preslst.Init()
+
+	self.presmux.Unlock()
+}
+
+func newPathPresenceCache(pathTimeout time.Duration, pathMaxCount int) *pathPresenceCache {
+	self := &pathPresenceCache{
+		pathTimeout:  pathTimeout,
+		pathMaxCount: pathMaxCount,
+		presmap:      map[string]*pathitem_t{},
+	}
+	self.preslst.Init()
+
+	return self
+}
+
 type pathmux_t struct {
 	mux    sync.RWMutex
 	refcnt int
 }
 
-type negitem_t struct {
+type pathitem_t struct {
 	link_t
 	pathKey string
 	atime   int64
