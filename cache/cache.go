@@ -903,13 +903,26 @@ func (self *Cache) readdirNode(node *node_t, maxcount int) (infos []objio.Object
 	err = self.database.Update(func(tx *bolt.Tx) (err error) {
 		ntx := nodetx_t{Tx: tx}
 
-		for _, i := range infos {
-			name := i.Name()
+		for i := range infos {
+			info := infos[i]
+			name := info.Name()
 			k := []byte(path.Join(pathKey, self.pathKey(name)))
 
 			n := node_t{}
 			err = n.Get(&ntx, k)
 			if nil == err {
+				// Our view of the file system namespace may be inconsistent with the
+				// one in the object storage.
+				//
+				// To minimize user confusion we prefer our information to the one
+				// from the storage.
+				info, err = n.Stat()
+				if nil != err {
+					err = nil
+				} else {
+					infos[i] = info
+				}
+
 				continue
 			}
 
@@ -920,7 +933,7 @@ func (self *Cache) readdirNode(node *node_t, maxcount int) (infos []objio.Object
 			}
 
 			n.Path = path.Join(node.Path, name)
-			n.CopyStat(i)
+			n.CopyStat(info)
 
 			err = n.Put(&ntx, k)
 			if nil != err {
