@@ -31,7 +31,7 @@ import (
 
 var DefaultTransport = NewTransport()
 var DefaultClient = NewClient(DefaultTransport)
-var DefaultRetryCount = 5
+var DefaultRetryCount = 10
 
 func NewTransport() *http.Transport {
 	transport := http.DefaultTransport.(*http.Transport)
