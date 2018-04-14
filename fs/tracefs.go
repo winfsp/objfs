@@ -30,7 +30,7 @@ type TraceFs struct {
 
 func traceFuse(vals ...interface{}) func(vals ...interface{}) {
 	uid, gid, _ := fuse.Getcontext()
-	return trace.Trace(1, fmt.Sprintf("[uid=%v,gid=%v]", uid, gid), vals...)
+	return trace.Trace(1, fmt.Sprintf("{{yellow}}[uid=%v,gid=%v]{{off}}", uid, gid), vals...)
 }
 
 func (self *TraceFs) Init() {
@@ -201,5 +201,8 @@ type traceErrc struct {
 }
 
 func (t traceErrc) GoString() string {
-	return fuse.Error(*t.v).Error()
+	if 0 == *t.v {
+		return "{{bold green}}OK{{off}}"
+	}
+	return "{{bold red}}" + fuse.Error(*t.v).Error() + "{{off}}"
 }

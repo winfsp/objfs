@@ -30,7 +30,7 @@ type TraceObjectStorage struct {
 }
 
 func traceStg(val0 interface{}, vals ...interface{}) func(vals ...interface{}) {
-	return trace.Trace(1, fmt.Sprintf("%T", val0), vals...)
+	return trace.Trace(1, fmt.Sprintf("{{yellow}}%T{{off}}", val0), vals...)
 }
 
 func (self *TraceObjectStorage) Info(getsize bool) (info StorageInfo, err error) {
@@ -106,7 +106,10 @@ type traceWrap struct {
 func (t traceWrap) GoString() string {
 	switch i := t.v.(type) {
 	case *error:
-		return fmt.Sprintf("error(%v)", *i)
+		if nil == *i {
+			return "{{bold green}}OK{{off}}"
+		}
+		return fmt.Sprintf("{{bold red}}error(\"%v\"){{off}}", *i)
 	case *StorageInfo:
 		return fmt.Sprintf("%#v", *i)
 	case *ObjectInfo:
