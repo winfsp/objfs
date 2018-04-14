@@ -597,7 +597,7 @@ func (self *Cache) makeNode(node *node_t, dir bool) (err error) {
 
 	node.CopyStat(info)
 
-	self.removeNegPath(pathKey)
+	self.negpres.removePath(pathKey)
 
 	return
 }
@@ -668,7 +668,7 @@ func (self *Cache) removeNode(node *node_t, dir bool) (err error) {
 
 	if nil == err0 {
 		node.Deleted = true
-		self.addNegPath(pathKey)
+		self.negpres.addPath(pathKey)
 	}
 	if nil == err {
 		err = err0
@@ -793,8 +793,8 @@ func (self *Cache) renameNode(node *node_t, newpath string) (err error) {
 	self.openmux.Unlock()
 
 	if pathKey != newpathKey {
-		self.removeAllNegPath(newpathKey)
-		self.addNegPath(pathKey)
+		self.negpres.removeAllPath(newpathKey)
+		self.negpres.addPath(pathKey)
 	}
 
 	return
@@ -823,7 +823,7 @@ func (self *Cache) statNode(node *node_t) (info objio.ObjectInfo, err error) {
 }
 
 func (self *Cache) statNodeNoLock(node *node_t, pathKey string) (err error) {
-	if self.isNegPath(pathKey) {
+	if self.negpres.hasPath(pathKey) {
 		err = errno.ENOENT
 		return
 	}
@@ -832,7 +832,7 @@ func (self *Cache) statNodeNoLock(node *node_t, pathKey string) (err error) {
 	i, err = self.storage.Stat(node.Path)
 	if nil != err {
 		if errors.HasAttachment(err, errno.ENOENT) {
-			self.addNegPath(pathKey)
+			self.negpres.addPath(pathKey)
 		}
 
 		return
@@ -853,7 +853,7 @@ func (self *Cache) statNodeNoLock(node *node_t, pathKey string) (err error) {
 
 	node.CopyStat(i)
 
-	self.removeNegPath(pathKey)
+	self.negpres.removePath(pathKey)
 
 	return
 }
@@ -953,7 +953,7 @@ func (self *Cache) readdirNode(node *node_t, maxcount int) (infos []objio.Object
 		self.touchIno(ino, false)
 	}
 
-	self.removeNegPath(pathKey)
+	self.negpres.removePath(pathKey)
 
 	return
 }
@@ -1002,7 +1002,7 @@ func (self *Cache) performFileIoOnNode(
 
 		node.File = file
 
-		self.removeNegPath(pathKey)
+		self.negpres.removePath(pathKey)
 	}
 
 	if nil != node.File {
@@ -1124,22 +1124,6 @@ func (self *Cache) closeAndUpdateNode(node *node_t) (err error) {
 	node.Mtime = n.Mtime
 
 	return
-}
-
-func (self *Cache) isNegPath(pathKey string) (ok bool) {
-	return self.negpres.hasPath(pathKey)
-}
-
-func (self *Cache) addNegPath(pathKey string) {
-	self.negpres.addPath(pathKey)
-}
-
-func (self *Cache) removeNegPath(pathKey string) {
-	self.negpres.removePath(pathKey)
-}
-
-func (self *Cache) removeAllNegPath(pathKey string) {
-	self.negpres.removeAllPath(pathKey)
 }
 
 func (self *Cache) touchIno(ino uint64, rw bool) {
