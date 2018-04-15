@@ -42,6 +42,8 @@ import (
 const Version = 1 // bump version when database format changes
 
 const (
+	DefaultDirPathTimeout  = time.Second * 10
+	DefaultDirPathMaxCount = 100
 	DefaultNegPathTimeout  = time.Second * 3
 	DefaultNegPathMaxCount = 100
 	DefaultLoopPeriod      = time.Second * 10
@@ -50,11 +52,27 @@ const (
 )
 
 type Config struct {
-	NegPathTimeout  time.Duration
+	// DirPathTimeout is the duration that Readdir will be satisfied from cache.
+	// This value should be less than EvictDelay.
+	DirPathTimeout time.Duration
+
+	// DirPathMaxCount is the maximum count of directories cached.
+	DirPathMaxCount int
+
+	// NegPathTimeout is the duration that a negative lookup (ENOENT) is considered valid.
+	NegPathTimeout time.Duration
+
+	// NegPathMaxCount is the maximum count of negative lookups cached.
 	NegPathMaxCount int
-	LoopPeriod      time.Duration
-	UploadDelay     time.Duration
-	EvictDelay      time.Duration
+
+	// LoopPeriod is how often the background thread will run to upload and evict files.
+	LoopPeriod time.Duration
+
+	// UploadDelay is how long the background thread will wait before uploading a file.
+	UploadDelay time.Duration
+
+	// UploadDelay is how long the background thread will wait before evicting a file.
+	EvictDelay time.Duration
 }
 
 const (
@@ -76,6 +94,7 @@ type Cache struct {
 	pathmap   map[string]*pathmux_t
 	openmux   sync.Mutex
 	openmap   map[uint64]*node_t
+	dirpres   *pathPresenceCache
 	negpres   *pathPresenceCache
 	lrumux    sync.Mutex
 	rwmap     map[uint64]*lruitem_t
@@ -192,6 +211,12 @@ func OpenCache(
 	if nil != config {
 		self.config = *config
 	}
+	if 0 >= self.config.DirPathTimeout {
+		self.config.DirPathTimeout = DefaultDirPathTimeout
+	}
+	if 0 >= self.config.DirPathMaxCount {
+		self.config.DirPathMaxCount = DefaultDirPathMaxCount
+	}
 	if 0 >= self.config.NegPathTimeout {
 		self.config.NegPathTimeout = DefaultNegPathTimeout
 	}
@@ -208,6 +233,7 @@ func OpenCache(
 		self.config.EvictDelay = DefaultEvictDelay
 	}
 
+	self.dirpres = newPathPresenceCache(self.config.DirPathTimeout, self.config.DirPathMaxCount)
 	self.negpres = newPathPresenceCache(self.config.NegPathTimeout, self.config.NegPathMaxCount)
 
 	self.database.View(func(tx *bolt.Tx) (err error) {
@@ -874,6 +900,54 @@ func (self *Cache) readdirNode(node *node_t, maxcount int) (infos []objio.Object
 	}
 
 	count := maxcount
+
+	if self.dirpres.hasPath(pathKey) {
+		k := []byte(pathKey)
+		err = self.database.View(func(tx *bolt.Tx) (err error) {
+			ntx := nodetx_t{Tx: tx}
+
+			cursor := ntx.Cat().Cursor()
+			for i, v := cursor.Seek(k); nil != i; i, v = cursor.Next() {
+				if !pathKeyHasPrefix(i, k) {
+					break
+				}
+
+				if bytes.Equal(i, k) || -1 != bytes.IndexByte(i[len(k)+1:], '/') {
+					continue
+				}
+
+				n := node_t{}
+				err = n.Decode(v)
+				if nil != err {
+					continue
+				}
+
+				var info objio.ObjectInfo
+				info, err = n.Stat()
+				if nil != err {
+					return
+				}
+
+				infos = append(infos, info)
+
+				if 0 < maxcount {
+					count--
+					if 0 >= count {
+						break
+					}
+				}
+			}
+
+			return
+		})
+
+		if nil != err {
+			infos = nil
+		}
+
+		return
+	}
+
 	marker := ""
 	for {
 		var i []objio.ObjectInfo
@@ -914,13 +988,15 @@ func (self *Cache) readdirNode(node *node_t, maxcount int) (infos []objio.Object
 				//
 				// To minimize user confusion we prefer our information to the one
 				// from the storage.
+
 				info, err = n.Stat()
 				if nil != err {
-					err = nil
-				} else {
-					infos[i] = info
+					return
 				}
 
+				infos[i] = info
+
+				inos = append(inos, n.Ino)
 				continue
 			}
 
@@ -953,6 +1029,7 @@ func (self *Cache) readdirNode(node *node_t, maxcount int) (infos []objio.Object
 		self.touchIno(ino, false)
 	}
 
+	self.dirpres.addPath(pathKey)
 	self.negpres.removePath(pathKey)
 
 	return
