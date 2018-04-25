@@ -25,6 +25,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sync"
 
 	"github.com/billziss-gh/golib/appdata"
 	"github.com/billziss-gh/golib/cmd"
@@ -80,15 +81,23 @@ func usage(cmd *cmd.Cmd) {
 	os.Exit(2)
 }
 
+var needvarOnce sync.Once
+
 func needvar(args ...interface{}) {
-	if acceptTlsCert {
-		httputil.DefaultTransport.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
-	}
+	needvarOnce.Do(func() {
+		if acceptTlsCert {
+			httputil.DefaultTransport.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+		}
+	})
 
 	for _, a := range args {
 		switch a {
 		case &cachePath:
-			if "" == cachePath && "" != storageName {
+			if "" != cachePath {
+				continue
+			}
+			needvar(&storageName)
+			if "" != storageName {
 				dir, err := appdata.DataDir()
 				if nil != err {
 					fail(err)
@@ -101,7 +110,11 @@ func needvar(args ...interface{}) {
 			}
 
 		case &credentials:
-			if nil == credentials && "" != storageName {
+			if nil != credentials {
+				continue
+			}
+			needvar(&storageName)
+			if "" != storageName {
 				credentials, _ = auth.ReadCredentials("keyring:objfs/" + storageName)
 			}
 			if nil == credentials {
@@ -117,6 +130,10 @@ func needvar(args ...interface{}) {
 			}
 
 		case &storage:
+			if nil != storage {
+				continue
+			}
+			needvar(&storageName, &credentials)
 			if "" == storageUri {
 				storageUri = storageUriMap[storageName]
 			}

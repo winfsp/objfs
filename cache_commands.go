@@ -47,7 +47,7 @@ func init() {
 }
 
 func CacheStatfs(cmd *cmd.Cmd, args []string) {
-	needvar(&credentials, &storageName, &storage, &cachePath)
+	needvar(&storage, &cachePath)
 
 	cmd.Flag.Parse(args)
 
@@ -70,7 +70,7 @@ func CacheStatfs(cmd *cmd.Cmd, args []string) {
 }
 
 func CacheLs(cmd *cmd.Cmd, args []string) {
-	needvar(&credentials, &storageName, &storage, &cachePath)
+	needvar(&storage, &cachePath)
 
 	cmd.Flag.Parse(args)
 	long := cmd.GetFlag("l").(bool)
@@ -110,7 +110,7 @@ func CacheLs(cmd *cmd.Cmd, args []string) {
 }
 
 func CacheStat(cmd *cmd.Cmd, args []string) {
-	needvar(&credentials, &storageName, &storage, &cachePath)
+	needvar(&storage, &cachePath)
 
 	cmd.Flag.Parse(args)
 	long := cmd.GetFlag("l").(bool)
@@ -148,7 +148,7 @@ func CacheStat(cmd *cmd.Cmd, args []string) {
 }
 
 func CacheMkdir(cmd *cmd.Cmd, args []string) {
-	needvar(&credentials, &storageName, &storage, &cachePath)
+	needvar(&storage, &cachePath)
 
 	cmd.Flag.Parse(args)
 
@@ -180,7 +180,7 @@ func CacheMkdir(cmd *cmd.Cmd, args []string) {
 }
 
 func CacheRmdir(cmd *cmd.Cmd, args []string) {
-	needvar(&credentials, &storageName, &storage, &cachePath)
+	needvar(&storage, &cachePath)
 
 	cmd.Flag.Parse(args)
 
@@ -212,7 +212,7 @@ func CacheRmdir(cmd *cmd.Cmd, args []string) {
 }
 
 func CacheRm(cmd *cmd.Cmd, args []string) {
-	needvar(&credentials, &storageName, &storage, &cachePath)
+	needvar(&storage, &cachePath)
 
 	cmd.Flag.Parse(args)
 
@@ -244,7 +244,7 @@ func CacheRm(cmd *cmd.Cmd, args []string) {
 }
 
 func CacheMv(cmd *cmd.Cmd, args []string) {
-	needvar(&credentials, &storageName, &storage, &cachePath)
+	needvar(&storage, &cachePath)
 
 	cmd.Flag.Parse(args)
 
@@ -272,7 +272,7 @@ func CacheMv(cmd *cmd.Cmd, args []string) {
 }
 
 func CacheGet(cmd *cmd.Cmd, args []string) {
-	needvar(&credentials, &storageName, &storage, &cachePath)
+	needvar(&storage, &cachePath)
 
 	cmd.Flag.Parse(args)
 
@@ -312,7 +312,7 @@ func CacheGet(cmd *cmd.Cmd, args []string) {
 }
 
 func CachePut(cmd *cmd.Cmd, args []string) {
-	needvar(&credentials, &storageName, &storage, &cachePath)
+	needvar(&storage, &cachePath)
 
 	cmd.Flag.Parse(args)
 

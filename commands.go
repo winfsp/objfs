@@ -96,7 +96,7 @@ func Auth(cmd *cmd.Cmd, args []string) {
 }
 
 func Mount(cmd *cmd.Cmd, args []string) {
-	needvar(&credentials, &storageName, &storage, &cachePath)
+	needvar(&storage, &cachePath)
 
 	cmd.Flag.Parse(args)
 	opts := cmd.GetFlag("o").(mntopts)
@@ -127,7 +127,7 @@ func Mount(cmd *cmd.Cmd, args []string) {
 }
 
 func Statfs(cmd *cmd.Cmd, args []string) {
-	needvar(&credentials, &storageName, &storage)
+	needvar(&storage)
 
 	cmd.Flag.Parse(args)
 
@@ -144,7 +144,7 @@ func Statfs(cmd *cmd.Cmd, args []string) {
 }
 
 func Ls(cmd *cmd.Cmd, args []string) {
-	needvar(&credentials, &storageName, &storage)
+	needvar(&storage)
 
 	cmd.Flag.Parse(args)
 	long := cmd.GetFlag("l").(bool)
@@ -187,7 +187,7 @@ func Ls(cmd *cmd.Cmd, args []string) {
 }
 
 func Stat(cmd *cmd.Cmd, args []string) {
-	needvar(&credentials, &storageName, &storage)
+	needvar(&storage)
 
 	cmd.Flag.Parse(args)
 	long := cmd.GetFlag("l").(bool)
@@ -211,7 +211,7 @@ func Stat(cmd *cmd.Cmd, args []string) {
 }
 
 func Mkdir(cmd *cmd.Cmd, args []string) {
-	needvar(&credentials, &storageName, &storage)
+	needvar(&storage)
 
 	cmd.Flag.Parse(args)
 
@@ -234,7 +234,7 @@ func Mkdir(cmd *cmd.Cmd, args []string) {
 }
 
 func Rmdir(cmd *cmd.Cmd, args []string) {
-	needvar(&credentials, &storageName, &storage)
+	needvar(&storage)
 
 	cmd.Flag.Parse(args)
 
@@ -255,7 +255,7 @@ func Rmdir(cmd *cmd.Cmd, args []string) {
 }
 
 func Rm(cmd *cmd.Cmd, args []string) {
-	needvar(&credentials, &storageName, &storage)
+	needvar(&storage)
 
 	cmd.Flag.Parse(args)
 
@@ -276,7 +276,7 @@ func Rm(cmd *cmd.Cmd, args []string) {
 }
 
 func Mv(cmd *cmd.Cmd, args []string) {
-	needvar(&credentials, &storageName, &storage)
+	needvar(&storage)
 
 	cmd.Flag.Parse(args)
 
@@ -294,7 +294,7 @@ func Mv(cmd *cmd.Cmd, args []string) {
 }
 
 func Get(cmd *cmd.Cmd, args []string) {
-	needvar(&credentials, &storageName, &storage)
+	needvar(&storage)
 
 	cmd.Flag.Parse(args)
 	rng := cmd.GetFlag("r").(string)
@@ -359,7 +359,7 @@ func Get(cmd *cmd.Cmd, args []string) {
 }
 
 func Put(cmd *cmd.Cmd, args []string) {
-	needvar(&credentials, &storageName, &storage)
+	needvar(&storage)
 
 	cmd.Flag.Parse(args)
 
@@ -405,7 +405,7 @@ func Put(cmd *cmd.Cmd, args []string) {
 }
 
 func CachePending(cmd *cmd.Cmd, args []string) {
-	needvar(&credentials, &storageName, &storage, &cachePath)
+	needvar(&storage, &cachePath)
 
 	cmd.Flag.Parse(args)
 
@@ -427,7 +427,7 @@ func CachePending(cmd *cmd.Cmd, args []string) {
 }
 
 func CacheReset(cmd *cmd.Cmd, args []string) {
-	needvar(&credentials, &storageName, &storage, &cachePath)
+	needvar(&storage, &cachePath)
 
 	cmd.Flag.Parse(args)
 
