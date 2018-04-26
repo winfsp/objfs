@@ -38,7 +38,9 @@ import (
 
 var (
 	cachePath      string
+	authName       string
 	credentials    auth.CredentialMap
+	authSession    auth.Session
 	storageName    string
 	storageUri     string
 	storage        objio.ObjectStorage
@@ -60,6 +62,8 @@ func init() {
 
 	flag.StringVar(&cachePath, "cache", "",
 		"`path` to file system cache")
+	flag.StringVar(&storageName, "auth", "",
+		"auth `name` to use")
 	flag.Var(&credentials, "credentials",
 		"auth credentials `path` (keyring:service/user or /file/path)")
 	flag.StringVar(&storageName, "storage", defaultStorageName,
@@ -92,6 +96,25 @@ func needvar(args ...interface{}) {
 
 	for _, a := range args {
 		switch a {
+		case &authSession:
+			if nil != authSession {
+				continue
+			}
+			if "" != authName {
+				needvar(&credentials)
+				a, err := auth.Registry.NewObject(authName)
+				if nil == err {
+					authSession, _ = a.(auth.Auth).Session(credentials)
+				}
+			} else {
+				needvar(&storageName, &credentials)
+				authSession, _ = authSessionMap[storageName](credentials)
+			}
+			if nil == authSession {
+				warn(errors.New("unknown auth; specify -auth in the command line"))
+				usage(nil)
+			}
+
 		case &cachePath:
 			if "" != cachePath {
 				continue
@@ -137,7 +160,14 @@ func needvar(args ...interface{}) {
 			if "" == storageUri {
 				storageUri = storageUriMap[storageName]
 			}
-			s, err := objio.Registry.NewObject(storageName, storageUri, credentials)
+			var creds interface{}
+			if "" != authName {
+				needvar(&authSession)
+				creds = authSession
+			} else {
+				creds = credentials
+			}
+			s, err := objio.Registry.NewObject(storageName, storageUri, creds)
 			if nil != err {
 				fail(err)
 			}

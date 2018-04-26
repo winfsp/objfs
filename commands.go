@@ -76,7 +76,7 @@ func init() {
 }
 
 func Auth(cmd *cmd.Cmd, args []string) {
-	needvar(&credentials, &storageName)
+	needvar(&authSession)
 
 	cmd.Flag.Parse(args)
 	opath := cmd.Flag.Arg(0)
@@ -84,12 +84,7 @@ func Auth(cmd *cmd.Cmd, args []string) {
 		usage(cmd)
 	}
 
-	session, err := authSessionMap[storageName](credentials)
-	if nil != err {
-		fail(errors.New("auth", err))
-	}
-
-	err = auth.WriteCredentials(opath, session.Credentials())
+	err := auth.WriteCredentials(opath, authSession.Credentials())
 	if nil != err {
 		fail(errors.New("auth", err))
 	}
