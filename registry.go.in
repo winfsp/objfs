@@ -32,7 +32,5 @@ func init() {
 	objfs.Load()
 {{range .}}
 	{{.Name}}.Load()
-	storageUriMap["{{.Name}}"] = {{.Name}}.DefaultUri
-	authSessionMap["{{.Name}}"] = {{.Name}}.AuthSession
 {{- end}}
 }

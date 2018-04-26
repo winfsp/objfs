@@ -31,6 +31,4 @@ func init() {
 	objfs.Load()
 
 	onedrive.Load()
-	storageUriMap["onedrive"] = onedrive.DefaultUri
-	authSessionMap["onedrive"] = onedrive.AuthSession
 }
