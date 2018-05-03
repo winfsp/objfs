@@ -54,6 +54,8 @@ func (opts *mntopts) Get() interface{} {
 
 func init() {
 	var c *cmd.Cmd
+	cmd.Add("config {get|set|delete} [section.]name [value]\nget or set configuration options",
+		Config)
 	cmd.Add("auth output-credentials\nperform authentication/authorization", Auth)
 	c = cmd.Add("mount [-o option...] mountpoint\nmount file system", Mount)
 	c.Flag.Var(new(mntopts), "o", "FUSE mount `option`")
@@ -73,6 +75,35 @@ func init() {
 	cmd.Add("put [local-path] path\nput (upload) files", Put)
 	cmd.Add("cache-pending\nlist pending cache files", CachePending)
 	cmd.Add("cache-reset\nreset cache (upload and evict files)", CacheReset)
+}
+
+func Config(c *cmd.Cmd, args []string) {
+	cmdmap := cmd.NewCmdMap()
+	c.Flag.Usage = cmd.UsageFunc(c, cmdmap)
+
+	cmdmap.Add("config.get [section.]name", ConfigGet)
+	cmdmap.Add("config.set [section.]name value", ConfigSet)
+	cmdmap.Add("config.delete [section.]name", ConfigDelete)
+
+	cmdmap.Run(c.Flag, args)
+}
+
+func ConfigGet(c *cmd.Cmd, args []string) {
+	needvar()
+
+	fmt.Println("ConfigGet")
+}
+
+func ConfigSet(c *cmd.Cmd, args []string) {
+	needvar()
+
+	fmt.Println("ConfigSet")
+}
+
+func ConfigDelete(c *cmd.Cmd, args []string) {
+	needvar()
+
+	fmt.Println("ConfigDelete")
 }
 
 func Auth(cmd *cmd.Cmd, args []string) {

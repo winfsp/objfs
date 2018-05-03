@@ -82,15 +82,7 @@ var (
 )
 
 func init() {
-	flag.Usage = func() {
-		fmt.Fprintf(os.Stderr, "usage: %s [-options] command args...\n", filepath.Base(os.Args[0]))
-		fmt.Fprintln(os.Stderr)
-		fmt.Fprintln(os.Stderr, "commands:")
-		cmd.PrintCmds()
-		fmt.Fprintln(os.Stderr)
-		fmt.Fprintln(os.Stderr, "options:")
-		flag.PrintDefaults()
-	}
+	flag.Usage = cmd.UsageFunc()
 
 	flag.StringVar(&configPath, "config", "",
 		"`path` to configuration file")
@@ -284,13 +276,5 @@ func fail(err error) {
 }
 
 func main() {
-	for _, name := range cmd.DefaultCmdMap.GetNames() {
-		cmd := cmd.DefaultCmdMap.Get(name)
-		cmd.Flag.Usage = func() {
-			fmt.Fprintf(os.Stderr, "usage: %s %s\n", filepath.Base(os.Args[0]), cmd.Use)
-			cmd.Flag.PrintDefaults()
-		}
-	}
-
 	cmd.Run()
 }
