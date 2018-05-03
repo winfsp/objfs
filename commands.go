@@ -27,7 +27,9 @@ import (
 	"time"
 
 	"github.com/billziss-gh/golib/cmd"
+	"github.com/billziss-gh/golib/config"
 	"github.com/billziss-gh/golib/errors"
+	"github.com/billziss-gh/golib/util"
 	"github.com/billziss-gh/objfs/auth"
 	"github.com/billziss-gh/objfs/cache"
 	"github.com/billziss-gh/objfs/fs"
@@ -88,22 +90,52 @@ func Config(c *cmd.Cmd, args []string) {
 	cmdmap.Run(c.Flag, args)
 }
 
-func ConfigGet(c *cmd.Cmd, args []string) {
+func ConfigGet(cmd *cmd.Cmd, args []string) {
 	needvar()
 
-	fmt.Println("ConfigGet")
+	cmd.Flag.Parse(args)
+	k := cmd.Flag.Arg(0)
+	if "" == k {
+		usage(cmd)
+	}
+
+	v := programConfig.Get(k)
+	if nil != v {
+		fmt.Printf("%v\n", v)
+	}
 }
 
-func ConfigSet(c *cmd.Cmd, args []string) {
+func ConfigSet(cmd *cmd.Cmd, args []string) {
 	needvar()
 
-	fmt.Println("ConfigSet")
+	cmd.Flag.Parse(args)
+	k := cmd.Flag.Arg(0)
+	v := cmd.Flag.Arg(1)
+	if "" == k || "" == v {
+		usage(cmd)
+	}
+
+	programConfig.Set(k, v)
+
+	util.WriteFunc(configPath, 0600, func(file *os.File) error {
+		return config.WriteTyped(file, programConfig)
+	})
 }
 
-func ConfigDelete(c *cmd.Cmd, args []string) {
+func ConfigDelete(cmd *cmd.Cmd, args []string) {
 	needvar()
 
-	fmt.Println("ConfigDelete")
+	cmd.Flag.Parse(args)
+	k := cmd.Flag.Arg(0)
+	if "" == k {
+		usage(cmd)
+	}
+
+	programConfig.Delete(k)
+
+	util.WriteFunc(configPath, 0600, func(file *os.File) error {
+		return config.WriteTyped(file, programConfig)
+	})
 }
 
 func Auth(cmd *cmd.Cmd, args []string) {

@@ -68,7 +68,7 @@ import (
 // For the full logic see needvar.
 var (
 	configPath    string
-	storageConfig config.TypedConfig
+	programConfig config.TypedConfig
 
 	acceptTlsCert  bool
 	authName       string
@@ -138,15 +138,15 @@ func needvar(args ...interface{}) {
 			return config.ReadTyped(file)
 		})
 		if nil == err {
-			conf := c.(config.TypedConfig)
+			programConfig = c.(config.TypedConfig)
 
-			for k, v := range conf[""] {
+			for k, v := range programConfig[""] {
 				flagMap[k] = v
 			}
 
 			cflag.Visit(nil, flagMap, "storage")
 
-			for k, v := range conf[flagMap["storage"].(string)] {
+			for k, v := range programConfig[flagMap["storage"].(string)] {
 				flagMap[k] = v
 			}
 
@@ -156,6 +156,8 @@ func needvar(args ...interface{}) {
 				"cache",
 				"credentials",
 				"storage-uri")
+		} else {
+			programConfig = config.TypedConfig{}
 		}
 
 		acceptTlsCert = flagMap["accept-tls-cert"].(bool)
