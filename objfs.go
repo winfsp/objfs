@@ -29,22 +29,56 @@ import (
 
 	"github.com/billziss-gh/golib/appdata"
 	"github.com/billziss-gh/golib/cmd"
+	"github.com/billziss-gh/golib/config"
+	cflag "github.com/billziss-gh/golib/config/flag"
 	"github.com/billziss-gh/golib/errors"
 	"github.com/billziss-gh/golib/trace"
+	"github.com/billziss-gh/golib/util"
 	"github.com/billziss-gh/objfs/auth"
 	"github.com/billziss-gh/objfs/httputil"
 	"github.com/billziss-gh/objfs/objio"
 )
 
+// Configuration variables. These variables control the overall operation of objfs.
+//
+// The logic of initializing these variables is rather complicated:
+//
+// - The configuration is determined by a combination of command-line parameters
+// and a configuration file. When there is a conflict between the two, the
+// command-line parameters take precendence.
+//
+// - The configuration file is named objfs.conf and placed in the appropriate
+// directory for the underlying system, unless the -config command-line parameter
+// is specified. The configuration file (if it exists) stores key/value pairs and
+// may also have [sections].
+//
+// - The process starts by creating an empty "flag map" and proceeds by merging
+// key/value pairs from the different sources.
+//
+// - If the configuration file exists it is read and the unnamed empty section ("")
+// is merged into the flag map. Then any "-storage" command line parameter
+// is merged into the flag map. Then if there is a configuration section with the
+// name specified by "storage" that section is merged into the flag map.
+//
+// - The remaining command-line options (other than -storage) are merged
+// into the flag map.
+//
+// - Finally the flag map is used to initialize the configuration variables.
+//
+// For the full logic see needvar.
 var (
-	cachePath     string
-	authName      string
-	credentials   auth.CredentialMap
-	authSession   auth.Session
-	storageName   string
-	storageUri    string
-	storage       objio.ObjectStorage
-	acceptTlsCert bool
+	configPath    string
+	storageConfig config.TypedConfig
+
+	acceptTlsCert  bool
+	authName       string
+	authSession    auth.Session
+	cachePath      string
+	credentialPath string
+	credentials    auth.CredentialMap
+	storage        objio.ObjectStorage
+	storageName    string
+	storageUri     string
 )
 
 func init() {
@@ -58,20 +92,23 @@ func init() {
 		flag.PrintDefaults()
 	}
 
-	flag.StringVar(&cachePath, "cache", "",
-		"`path` to file system cache")
-	flag.StringVar(&authName, "auth", "",
-		"auth `name` to use")
-	flag.Var(&credentials, "credentials",
-		"auth credentials `path` (keyring:service/user or /file/path)")
-	flag.StringVar(&storageName, "storage", defaultStorageName,
-		"storage `name` to access")
-	flag.StringVar(&storageUri, "storage-uri", "",
-		"storage `uri` to access")
-	flag.BoolVar(&acceptTlsCert, "accept-tls-cert", false,
-		"accept any TLS certificate presented by the server (insecure)")
+	flag.StringVar(&configPath, "config", "",
+		"`path` to configuration file")
 	flag.BoolVar(&trace.Verbose, "v", false,
 		"verbose")
+
+	flag.Bool("accept-tls-cert", false,
+		"accept any TLS certificate presented by the server (insecure)")
+	flag.String("auth", "",
+		"auth `name` to use")
+	flag.String("cache", "",
+		"`path` to file system cache")
+	flag.String("credentials", "",
+		"auth credentials `path` (keyring:service/user or /file/path)")
+	flag.String("storage", defaultStorageName,
+		"storage `name` to access")
+	flag.String("storage-uri", "",
+		"storage `uri` to access")
 }
 
 func usage(cmd *cmd.Cmd) {
@@ -87,6 +124,66 @@ var needvarOnce sync.Once
 
 func needvar(args ...interface{}) {
 	needvarOnce.Do(func() {
+		if "" == configPath {
+			dir, err := appdata.ConfigDir()
+			if nil != err {
+				fail(err)
+			}
+
+			configPath = filepath.Join(dir, "objfs.conf")
+		}
+
+		flagMap := config.TypedSection{}
+		cflag.VisitAll(nil, flagMap,
+			"accept-tls-cert",
+			"auth",
+			"cache",
+			"credentials",
+			"storage",
+			"storage-uri")
+
+		c, err := util.ReadFunc(configPath, func(file *os.File) (interface{}, error) {
+			return config.ReadTyped(file)
+		})
+		if nil == err {
+			conf := c.(config.TypedConfig)
+
+			for k, v := range conf[""] {
+				flagMap[k] = v
+			}
+
+			cflag.Visit(nil, flagMap, "storage")
+
+			for k, v := range conf[flagMap["storage"].(string)] {
+				flagMap[k] = v
+			}
+
+			cflag.Visit(nil, flagMap,
+				"accept-tls-cert",
+				"auth",
+				"cache",
+				"credentials",
+				"storage-uri")
+		}
+
+		acceptTlsCert = flagMap["accept-tls-cert"].(bool)
+		authName = flagMap["auth"].(string)
+		cachePath = flagMap["cache"].(string)
+		credentialPath = flagMap["credentials"].(string)
+		storageName = flagMap["storage"].(string)
+		storageUri = flagMap["storage-uri"].(string)
+
+		if false {
+			fmt.Printf("configPath=%#v\n", configPath)
+			fmt.Println()
+			fmt.Printf("acceptTlsCert=%#v\n", acceptTlsCert)
+			fmt.Printf("authName=%#v\n", authName)
+			fmt.Printf("cachePath=%#v\n", cachePath)
+			fmt.Printf("credentialPath=%#v\n", credentialPath)
+			fmt.Printf("storageName=%#v\n", storageName)
+			fmt.Printf("storageUri=%#v\n", storageUri)
+		}
+
 		if acceptTlsCert {
 			httputil.DefaultTransport.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
 		}
@@ -128,12 +225,19 @@ func needvar(args ...interface{}) {
 			}
 			cachePath = filepath.Join(dir, "objfs", storageName)
 
+		case &credentialPath:
+			if "" != credentialPath {
+				continue
+			}
+			needvar(&storageName)
+			credentialPath = "keyring:objfs/" + storageName
+
 		case &credentials:
 			if nil != credentials {
 				continue
 			}
-			needvar(&storageName)
-			credentials, _ = auth.ReadCredentials("keyring:objfs/" + storageName)
+			needvar(&credentialPath)
+			credentials, _ = auth.ReadCredentials(credentialPath)
 			if nil == credentials {
 				warn(errors.New("unknown credentials; specify -credentials in the command line"))
 				usage(nil)
