@@ -20,6 +20,7 @@
 package main
 
 import (
+	"crypto/rand"
 	"crypto/tls"
 	"flag"
 	"fmt"
@@ -32,6 +33,7 @@ import (
 	"github.com/billziss-gh/golib/config"
 	cflag "github.com/billziss-gh/golib/config/flag"
 	"github.com/billziss-gh/golib/errors"
+	"github.com/billziss-gh/golib/keyring"
 	"github.com/billziss-gh/golib/trace"
 	"github.com/billziss-gh/golib/util"
 	"github.com/billziss-gh/objfs/auth"
@@ -68,6 +70,7 @@ import (
 // For the full logic see needvar.
 var (
 	configPath    string
+	dataDir       string
 	programConfig config.TypedConfig
 
 	acceptTlsCert  bool
@@ -86,6 +89,8 @@ func init() {
 
 	flag.StringVar(&configPath, "config", "",
 		"`path` to configuration file")
+	flag.String("datadir", "",
+		"`path` to supporting data and caches")
 	flag.BoolVar(&trace.Verbose, "v", false,
 		"verbose")
 
@@ -93,8 +98,6 @@ func init() {
 		"accept any TLS certificate presented by the server (insecure)")
 	flag.String("auth", "",
 		"auth `name` to use")
-	flag.String("cache", "",
-		"`path` to file system cache")
 	flag.String("credentials", "",
 		"auth credentials `path` (keyring:service/user or /file/path)")
 	flag.String("storage", defaultStorageName,
@@ -110,6 +113,34 @@ func usage(cmd *cmd.Cmd) {
 		cmd.Flag.Usage()
 	}
 	os.Exit(2)
+}
+
+func initKeyring(path string) {
+	var key []byte
+	pass, err := keyring.Get("objfs", "keyring")
+	if nil != err {
+		key = make([]byte, 16)
+		_, err = rand.Read(key)
+		if nil != err {
+			fail(err)
+		}
+		err = keyring.Set("objfs", "keyring", string(key))
+		if nil != err {
+			fail(err)
+		}
+	} else {
+		key = []byte(pass)
+	}
+
+	keyring.DefaultKeyring = &keyring.OverlayKeyring{
+		Keyrings: []keyring.Keyring{
+			&keyring.FileKeyring{
+				Path: filepath.Join(path, "keyring"),
+				Key:  key,
+			},
+			keyring.DefaultKeyring,
+		},
+	}
 }
 
 var needvarOnce sync.Once
@@ -129,8 +160,8 @@ func needvar(args ...interface{}) {
 		cflag.VisitAll(nil, flagMap,
 			"accept-tls-cert",
 			"auth",
-			"cache",
 			"credentials",
+			"datadir",
 			"storage",
 			"storage-uri")
 
@@ -153,8 +184,8 @@ func needvar(args ...interface{}) {
 			cflag.Visit(nil, flagMap,
 				"accept-tls-cert",
 				"auth",
-				"cache",
 				"credentials",
+				"datadir",
 				"storage-uri")
 		} else {
 			programConfig = config.TypedConfig{}
@@ -162,17 +193,28 @@ func needvar(args ...interface{}) {
 
 		acceptTlsCert = flagMap["accept-tls-cert"].(bool)
 		authName = flagMap["auth"].(string)
-		cachePath = flagMap["cache"].(string)
 		credentialPath = flagMap["credentials"].(string)
+		dataDir = flagMap["datadir"].(string)
 		storageName = flagMap["storage"].(string)
 		storageUri = flagMap["storage-uri"].(string)
 
+		if "" == dataDir {
+			dir, err := appdata.DataDir()
+			if nil != err {
+				fail(err)
+			}
+
+			dataDir = filepath.Join(dir, "objfs")
+		}
+
+		initKeyring(dataDir)
+
 		if false {
 			fmt.Printf("configPath=%#v\n", configPath)
+			fmt.Printf("dataDir=%#v\n", dataDir)
 			fmt.Println()
 			fmt.Printf("acceptTlsCert=%#v\n", acceptTlsCert)
 			fmt.Printf("authName=%#v\n", authName)
-			fmt.Printf("cachePath=%#v\n", cachePath)
 			fmt.Printf("credentialPath=%#v\n", credentialPath)
 			fmt.Printf("storageName=%#v\n", storageName)
 			fmt.Printf("storageUri=%#v\n", storageUri)
@@ -213,11 +255,7 @@ func needvar(args ...interface{}) {
 				continue
 			}
 			needvar(&storageName)
-			dir, err := appdata.DataDir()
-			if nil != err {
-				fail(err)
-			}
-			cachePath = filepath.Join(dir, "objfs", storageName)
+			cachePath = filepath.Join(dataDir, storageName)
 
 		case &credentialPath:
 			if "" != credentialPath {
