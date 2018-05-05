@@ -18,6 +18,12 @@ The objfs program implements the ``object storage file system''.
 Objfs exposes objects from an object storage, such as a cloud drive, etc. as files in a file system that is fully integrated with the operating system. Programs that run on the operating system are able to access these files as if they are stored in a local "drive" (perhaps with some delay due to network operations).
 
 Objfs accepts commands such as `auth` and `mount`, but also shell-like commands, such as `ls`, `stat`, etc.
+
+Objfs configures itself on every run according to these sources of configuration in order of precedence:
+
+- Command line options.
+- A configuration file, which is found in a platform-specific location (unless overriden by the `-config` option).
+- Sensible defaults.
 {blank}
 
 Default Storage
@@ -107,32 +113,12 @@ $ ./objfs -v -credentials=TOKEN_PATH mount MOUNTPOINT
 ----
 {blank}
 
-GENERAL OPTIONS
----------------
-The following options apply to all commands:
-
-`-accept-tls-cert`::
-    accept any TLS certificate presented by the server (insecure)
-    
-`-cache path`::
-    path to file system cache
-
-`-credentials path`::
-    auth credentials path (keyring:service/user or /file/path)
-
-`-storage name`::
-    storage name to access (default "onedrive")
-
-`-storage-uri uri`::
-    storage uri to access
-
-`-v`::
-    verbose
-{blank}
-
 COMMANDS
 --------
 The following commands may be used:
+
+`config`::
+    get or set configuration options
 
 `auth output-credentials`::
     perform authentication/authorization
@@ -172,6 +158,82 @@ The following commands may be used:
 
 `cache-reset`::
     reset cache (upload and evict files)
+{blank}
+
+GENERAL OPTIONS
+---------------
+The following options apply to all commands:
+
+`-accept-tls-cert`::
+    accept any TLS certificate presented by the server (insecure)
+    
+`-auth name`::
+    auth name to use
+
+`-config path`::
+    path to configuration file
+
+`-credentials path`::
+    auth credentials path (keyring:service/user or /file/path)
+
+`-datadir path`::
+    path to supporting data and caches
+
+`-storage name`::
+    storage name to access (default "onedrive")
+
+`-storage-uri uri`::
+    storage uri to access
+
+`-v`::
+    verbose
+{blank}
+
+CONFIGURATION FILE
+------------------
+During startup objfs consults a congifuration file from a platform-specific location (see the *FILES* section); this location can be overriden with the `-config` option.
+
+The configuration file stores a list of properties (key/value) pairs, that may also be grouped into sections. The basic syntax of the configuration file is as follows:
+
+----
+name1=value1
+name2=value2
+...
+[section]
+name3=value3
+name4=value4
+...
+----
+
+The valid property names are a subset of the command-line options: `auth`, `credentials`, `storage`, `storage-uri`. They specify the same value as the equivalent command-line option.
+
+The command line option or property `storage` may specify the name of a storage service (e.g. `onedrive`), but it may also specify a section within the configuration file, which should be used to retrieve additional configuration options. For example, given the configuration file below and a command line option `-storage=onedrive2`, it will instruct objfs to act on the OneDrive storage identified by the credentials `keyring:objfs/onedrive2`:
+
+----
+[onedrive1]
+storage=onedrive
+credentials=keyring:objfs/onedrive1
+
+[onedrive2]
+storage=onedrive
+credentials=keyring:objfs/onedrive2
+----
+{blank}
+
+FILES
+-----
+Windows::
+    - *config*: `%USERPROFILE%\AppData\Roaming\objfs.conf`
+    - *datadir*: `%USERPROFILE%\AppData\Roaming\objfs`
+
+macOS::
+    - *config*: `~/Library/Preferences/objfs.conf`
+    - *datadir*: `~/Library/Application Support/objfs`
+
+Linux::
+    - *config*: `~/.config/objfs.conf`
+    - *datadir*: `~/.local/share/objfs`
+
 {blank}
 
 COPYRIGHT
