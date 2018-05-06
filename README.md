@@ -16,7 +16,8 @@ $ ./objfs help
 usage: objfs [-options] command args...
 
 commands:
-  help
+  config
+    	get or set configuration options
   auth
     	perform authentication/authorization
   mount
@@ -47,13 +48,17 @@ commands:
 options:
   -accept-tls-cert
     	accept any TLS certificate presented by the server (insecure)
-  -cache path
-    	path to file system cache
+  -auth name
+    	auth name to use
+  -config path
+    	path to configuration file
   -credentials path
     	auth credentials path (keyring:service/user or /file/path)
+  -datadir path
+    	path to supporting data and caches
   -storage name
     	storage name to access (default "onedrive")
-  -storage_uri uri
+  -storage-uri uri
     	storage uri to access
   -v	verbose
 ```
