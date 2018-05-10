@@ -719,19 +719,26 @@ func (self *Cache) renameNode(node *node_t, newpath string) (err error) {
 		}
 	}
 
-	self.lockPath(pathKey)
-	defer self.unlockPath(pathKey)
+	if pathKey < newpathKey {
+		self.lockPath(pathKey)
+		defer self.unlockPath(pathKey)
+		self.lockPath(newpathKey)
+		defer self.unlockPath(newpathKey)
+	} else if pathKey > newpathKey {
+		self.lockPath(newpathKey)
+		defer self.unlockPath(newpathKey)
+		self.lockPath(pathKey)
+		defer self.unlockPath(pathKey)
+	} else {
+		// to avoid deadlock only lock both keys when oldpath != newpath;
+		// (this can happen during case-sensitivity rename (file->FILE))
+		self.lockPath(pathKey)
+		defer self.unlockPath(pathKey)
+	}
 
 	if node.Deleted {
 		err = errno.EPERM
 		return
-	}
-
-	if pathKey != newpathKey {
-		// to avoid deadlock only lock when oldpath != newpath;
-		// (this can happen during case-sensitivity rename (file->FILE))
-		self.lockPath(newpathKey)
-		defer self.unlockPath(newpathKey)
 	}
 
 	err = self.storage.Rename(oldpath, newpath)
