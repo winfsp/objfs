@@ -26,7 +26,7 @@ racy: registry.go
 
 .PHONY: debug
 debug: registry.go
-	go build -tags debug -gcflags all="-N -l"
+	go build -race -tags debug -gcflags all="-N -l"
 
 registry.go: registry.go.in Makefile
 	go run _tools/listtool.go registry.go.in $(Packages) > registry.go

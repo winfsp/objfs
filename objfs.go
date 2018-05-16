@@ -1,4 +1,4 @@
-///usr/bin/env go run -tags debug objfs.go registry.go commands.go cache_commands.go debug.go "$@"; exit
+///usr/bin/env go run objfs.go registry.go commands.go "$@"; exit
 
 /*
  * objfs.go
