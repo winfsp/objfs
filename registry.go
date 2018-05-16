@@ -23,6 +23,7 @@ import (
 	"github.com/billziss-gh/objfs/fs/objfs"
 
 	"github.com/billziss-gh/objfs.pkg/objio/onedrive"
+	"github.com/billziss-gh/objfs.pkg/objio/dropbox"
 )
 
 const defaultStorageName = "onedrive"
@@ -31,4 +32,5 @@ func init() {
 	objfs.Load()
 
 	onedrive.Load()
+	dropbox.Load()
 }
