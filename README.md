@@ -16,6 +16,8 @@ $ ./objfs help
 usage: objfs [-options] command args...
 
 commands:
+  version
+    	get current version information
   config
     	get or set configuration options
   auth

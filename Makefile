@@ -1,7 +1,10 @@
 # Makefile
 
-Packages= \
-	./vendor/github.com/billziss-gh/objfs.pkg/objio/onedrive \
+MyBuildNumber=$(shell date +%y%j)
+MyVersion=0.9.$(MyBuildNumber)
+
+Packages=\
+	./vendor/github.com/billziss-gh/objfs.pkg/objio/onedrive\
 	./vendor/github.com/billziss-gh/objfs.pkg/objio/dropbox
 
 ifeq ($(OS),Windows_NT)
@@ -19,11 +22,7 @@ generate:
 
 .PHONY: build
 build: registry.go
-	go build -ldflags "-s -w"
-
-.PHONY: racy
-racy: registry.go
-	go build -race -ldflags "-s -w"
+	go build -ldflags "-s -w -X \"main.MyVersion=$(MyVersion)\""
 
 .PHONY: debug
 debug: registry.go

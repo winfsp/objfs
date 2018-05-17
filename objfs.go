@@ -41,6 +41,18 @@ import (
 	"github.com/billziss-gh/objfs/objio"
 )
 
+// Product variables. These variables can be overriden using the go build
+// -ldflags switch. For example:
+//
+//     go build -ldflags "-X main.MyVersion=0.9"
+var (
+	MyProductName = "objfs"
+	MyDescription = "Object Storage File System"
+	MyCopyright   = "2018 Bill Zissimopoulos"
+	MyRepository  = "https://github.com/billziss-gh/objfs"
+	MyVersion     = "DEVEL"
+)
+
 // Configuration variables. These variables control the overall operation of objfs.
 //
 // The logic of initializing these variables is rather complicated:

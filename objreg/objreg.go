@@ -47,6 +47,19 @@ func (self *ObjectFactoryRegistry) UnregisterFactory(name string) {
 	delete(self.reg, name)
 }
 
+// GetNames gets the factory names.
+func (self *ObjectFactoryRegistry) GetNames() []string {
+	self.mux.Lock()
+	defer self.mux.Unlock()
+	names := make([]string, len(self.reg))
+	i := 0
+	for n := range self.reg {
+		names[i] = n
+		i++
+	}
+	return names
+}
+
 // GetFactory gets an object factory by name.
 func (self *ObjectFactoryRegistry) GetFactory(name string) ObjectFactory {
 	self.mux.Lock()

@@ -117,6 +117,9 @@ COMMANDS
 --------
 The following commands may be used:
 
+`version`::
+    get current version information
+
 `config`::
     get or set configuration options
 

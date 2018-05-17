@@ -24,6 +24,8 @@ import (
 	"io/ioutil"
 	"os"
 	"path"
+	"sort"
+	"strings"
 	"time"
 
 	"github.com/billziss-gh/golib/cmd"
@@ -56,6 +58,7 @@ func (opts *mntopts) Get() interface{} {
 
 func init() {
 	var c *cmd.Cmd
+	cmd.Add("version\nget current version information", Version)
 	cmd.Add("config {get|set|delete} [section.]name [value]\nget or set configuration options",
 		Config)
 	cmd.Add("auth output-credentials\nperform authentication/authorization", Auth)
@@ -77,6 +80,40 @@ func init() {
 	cmd.Add("put [local-path] path\nput (upload) files", Put)
 	cmd.Add("cache-pending\nlist pending cache files", CachePending)
 	cmd.Add("cache-reset\nreset cache (upload and evict files)", CacheReset)
+}
+
+func Version(cmd *cmd.Cmd, args []string) {
+	cmd.Flag.Parse(args)
+
+	if 0 != cmd.Flag.NArg() {
+		usage(cmd)
+	}
+
+	curryear := time.Now().Year()
+	scanyear := 0
+	fmt.Sscan(MyCopyright, &scanyear)
+	copyright := MyCopyright
+	if curryear != scanyear {
+		copyright = strings.Replace(MyCopyright,
+			fmt.Sprint(scanyear), fmt.Sprintf("%d-%d", scanyear, curryear), 1)
+	}
+
+	fmt.Printf("%s - %s; version %s\ncopyright %s\n",
+		MyProductName, MyDescription, MyVersion, copyright)
+	if "" != MyRepository {
+		fmt.Printf("%s\n", MyRepository)
+	}
+
+	fmt.Printf("\nsupported storages:\n")
+	names := objio.Registry.GetNames()
+	sort.Sort(sort.StringSlice(names))
+	for _, n := range names {
+		if n == defaultStorageName {
+			fmt.Printf("  %s (default)\n", n)
+		} else {
+			fmt.Printf("  %s\n", n)
+		}
+	}
 }
 
 func Config(c *cmd.Cmd, args []string) {
