@@ -24,6 +24,10 @@ generate:
 build: registry.go
 	go build -ldflags "-s -w -X \"main.MyVersion=$(MyVersion)\""
 
+.PHONY: racy
+racy: registry.go
+	go build -race -ldflags "-s -w -X \"main.MyVersion=$(MyVersion)-racy\""
+
 .PHONY: debug
 debug: registry.go
 	go build -race -tags debug -gcflags all="-N -l"
