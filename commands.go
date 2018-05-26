@@ -148,6 +148,12 @@ func ConfigSet(cmd *cmd.Cmd, args []string) {
 	cmd.Flag.Parse(args)
 	k := cmd.Flag.Arg(0)
 	v := cmd.Flag.Arg(1)
+	if "" == v {
+		if i := strings.IndexByte(k, '='); -1 != i {
+			v = k[i+1:]
+			k = k[:i]
+		}
+	}
 	if "" == k || "" == v {
 		usage(cmd)
 	}
