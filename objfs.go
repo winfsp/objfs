@@ -111,8 +111,8 @@ func init() {
 		"accept any TLS certificate presented by the server (insecure)")
 	flag.String("auth", "",
 		"auth `name` to use")
-	flag.String("keyring", "private",
-		"keyring type to use: system, private")
+	flag.String("keyring", "user",
+		"keyring type to use: system, user, userplain")
 	flag.String("credentials", "",
 		"auth credentials `path` (keyring:service/user or /file/path)")
 	flag.String("storage", defaultStorageName,
@@ -137,38 +137,38 @@ func usageWithError(err error) {
 }
 
 func initKeyring(kind string, path string) {
-	if "system" == kind {
-		return
-	}
-
-	if "private" != kind {
-		usageWithError(errors.New("unknown keyring type; specify -keyring in the command line"))
-	}
-
 	var key []byte
-	pass, err := keyring.Get("objfs", "keyring")
-	if nil != err {
-		key = make([]byte, 16)
-		_, err = rand.Read(key)
-		if nil != err {
-			fail(err)
-		}
-		err = keyring.Set("objfs", "keyring", string(key))
-		if nil != err {
-			fail(err)
-		}
-	} else {
-		key = []byte(pass)
-	}
 
-	keyring.DefaultKeyring = &keyring.OverlayKeyring{
-		Keyrings: []keyring.Keyring{
-			&keyring.FileKeyring{
-				Path: filepath.Join(path, "keyring"),
-				Key:  key,
+	switch kind {
+	case "system":
+	case "user":
+		pass, err := keyring.Get("objfs", "keyring")
+		if nil != err {
+			key = make([]byte, 16)
+			_, err = rand.Read(key)
+			if nil != err {
+				fail(err)
+			}
+			err = keyring.Set("objfs", "keyring", string(key))
+			if nil != err {
+				fail(err)
+			}
+		} else {
+			key = []byte(pass)
+		}
+		fallthrough
+	case "userplain":
+		keyring.DefaultKeyring = &keyring.OverlayKeyring{
+			Keyrings: []keyring.Keyring{
+				&keyring.FileKeyring{
+					Path: filepath.Join(path, "keyring"),
+					Key:  key,
+				},
+				keyring.DefaultKeyring,
 			},
-			keyring.DefaultKeyring,
-		},
+		}
+	default:
+		usageWithError(errors.New("unknown keyring type; specify -keyring in the command line"))
 	}
 }
 
