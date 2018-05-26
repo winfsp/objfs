@@ -91,6 +91,7 @@ var (
 	cachePath      string
 	credentialPath string
 	credentials    auth.CredentialMap
+	keyringKind    string
 	storage        objio.ObjectStorage
 	storageName    string
 	storageUri     string
@@ -110,6 +111,8 @@ func init() {
 		"accept any TLS certificate presented by the server (insecure)")
 	flag.String("auth", "",
 		"auth `name` to use")
+	flag.String("keyring", "private",
+		"keyring type to use: system, private")
 	flag.String("credentials", "",
 		"auth credentials `path` (keyring:service/user or /file/path)")
 	flag.String("storage", defaultStorageName,
@@ -127,7 +130,16 @@ func usage(cmd *cmd.Cmd) {
 	os.Exit(2)
 }
 
-func initKeyring(path string) {
+func initKeyring(kind string, path string) {
+	if "system" == kind {
+		return
+	}
+
+	if "private" != kind {
+		warn(errors.New("unknown keyring type; specify -keyring in the command line"))
+		usage(nil)
+	}
+
 	var key []byte
 	pass, err := keyring.Get("objfs", "keyring")
 	if nil != err {
@@ -174,6 +186,7 @@ func needvar(args ...interface{}) {
 			"auth",
 			"credentials",
 			"datadir",
+			"keyring",
 			"storage",
 			"storage-uri")
 
@@ -198,6 +211,7 @@ func needvar(args ...interface{}) {
 				"auth",
 				"credentials",
 				"datadir",
+				"keyring",
 				"storage-uri")
 		} else {
 			programConfig = config.TypedConfig{}
@@ -207,6 +221,7 @@ func needvar(args ...interface{}) {
 		authName = flagMap["auth"].(string)
 		credentialPath = flagMap["credentials"].(string)
 		dataDir = flagMap["datadir"].(string)
+		keyringKind = flagMap["keyring"].(string)
 		storageName = flagMap["storage"].(string)
 		storageUri = flagMap["storage-uri"].(string)
 
@@ -219,7 +234,7 @@ func needvar(args ...interface{}) {
 			dataDir = filepath.Join(dir, "objfs")
 		}
 
-		initKeyring(dataDir)
+		initKeyring(keyringKind, dataDir)
 
 		if false {
 			fmt.Printf("configPath=%#v\n", configPath)
@@ -228,6 +243,7 @@ func needvar(args ...interface{}) {
 			fmt.Printf("acceptTlsCert=%#v\n", acceptTlsCert)
 			fmt.Printf("authName=%#v\n", authName)
 			fmt.Printf("credentialPath=%#v\n", credentialPath)
+			fmt.Printf("keyringKind=%#v\n", keyringKind)
 			fmt.Printf("storageName=%#v\n", storageName)
 			fmt.Printf("storageUri=%#v\n", storageUri)
 		}
