@@ -20,6 +20,8 @@ commands:
     	get current version information
   config
     	get or set configuration options
+  keyring
+    	get or set keys
   auth
     	perform authentication/authorization
   mount
@@ -58,6 +60,8 @@ options:
     	auth credentials path (keyring:service/user or /file/path)
   -datadir path
     	path to supporting data and caches
+  -keyring string
+    	keyring type to use: system, private (default "private")
   -storage name
     	storage name to access (default "onedrive")
   -storage-uri uri

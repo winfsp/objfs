@@ -123,6 +123,9 @@ The following commands may be used:
 `config`::
     get or set configuration options
 
+`keyring`::
+    get or set keys
+
 `auth output-credentials`::
     perform authentication/authorization
 
@@ -181,6 +184,9 @@ The following options apply to all commands:
 
 `-datadir path`::
     path to supporting data and caches
+
+`-keyring string`::
+    keyring type to use: system, private (default "private")
 
 `-storage name`::
     storage name to access (default "onedrive")

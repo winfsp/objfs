@@ -2,12 +2,12 @@
 .\"     Title: objfs
 .\"    Author: [see the "AUTHOR(S)" section]
 .\" Generator: Asciidoctor 1.5.7
-.\"      Date: 2018-05-16
+.\"      Date: 2018-05-25
 .\"    Manual: \ \&
 .\"    Source: \ \&
 .\"  Language: English
 .\"
-.TH "OBJFS" "1" "2018-05-16" "\ \&" "\ \&"
+.TH "OBJFS" "1" "2018-05-25" "\ \&" "\ \&"
 .ie \n(.g .ds Aq \(aq
 .el       .ds Aq '
 .ss \n[.ss] 0
@@ -223,6 +223,11 @@ get current version information
 get or set configuration options
 .RE
 .sp
+\f(CRkeyring\fP
+.RS 4
+get or set keys
+.RE
+.sp
 \f(CRauth output\-credentials\fP
 .RS 4
 perform authentication/authorization
@@ -316,6 +321,11 @@ auth credentials path (keyring:service/user or /file/path)
 \f(CR\-datadir path\fP
 .RS 4
 path to supporting data and caches
+.RE
+.sp
+\f(CR\-keyring string\fP
+.RS 4
+keyring type to use: system, private (default "private")
 .RE
 .sp
 \f(CR\-storage name\fP
