@@ -31,6 +31,7 @@ import (
 	"github.com/billziss-gh/golib/cmd"
 	"github.com/billziss-gh/golib/config"
 	"github.com/billziss-gh/golib/errors"
+	"github.com/billziss-gh/golib/keyring"
 	"github.com/billziss-gh/golib/util"
 	"github.com/billziss-gh/objfs/auth"
 	"github.com/billziss-gh/objfs/cache"
@@ -61,6 +62,8 @@ func init() {
 	cmd.Add("version\nget current version information", Version)
 	cmd.Add("config {get|set|delete} [section.]name [value]\nget or set configuration options",
 		Config)
+	cmd.Add("keyring {get|set|delete} service/user\nget or set keys",
+		Keyring)
 	cmd.Add("auth output-credentials\nperform authentication/authorization", Auth)
 	c = cmd.Add("mount [-o option...] mountpoint\nmount file system", Mount)
 	c.Flag.Var(new(mntopts), "o", "FUSE mount `option`")
@@ -179,6 +182,92 @@ func ConfigDelete(cmd *cmd.Cmd, args []string) {
 	util.WriteFunc(configPath, 0600, func(file *os.File) error {
 		return config.WriteTyped(file, programConfig)
 	})
+}
+
+func Keyring(c *cmd.Cmd, args []string) {
+	cmdmap := cmd.NewCmdMap()
+	c.Flag.Usage = cmd.UsageFunc(c, cmdmap)
+
+	cmdmap.Add("keyring.get service/user", KeyringGet)
+	cmdmap.Add("keyring.set service/user", KeyringSet)
+	cmdmap.Add("keyring.delete service/user", KeyringDelete)
+
+	cmdmap.Run(c.Flag, args)
+}
+
+func KeyringGet(cmd *cmd.Cmd, args []string) {
+	needvar()
+
+	cmd.Flag.Parse(args)
+
+	service := cmd.Flag.Arg(0)
+	user := cmd.Flag.Arg(1)
+	if "" == user {
+		if i := strings.IndexByte(service, '/'); -1 != i {
+			user = service[i+1:]
+			service = service[:i]
+		}
+	}
+	if "" == service || "" == user {
+		usage(cmd)
+	}
+
+	pass, err := keyring.Get(service, user)
+	if nil != err {
+		fail(err)
+	}
+	os.Stdout.WriteString(pass)
+}
+
+func KeyringSet(cmd *cmd.Cmd, args []string) {
+	needvar()
+
+	cmd.Flag.Parse(args)
+
+	service := cmd.Flag.Arg(0)
+	user := cmd.Flag.Arg(1)
+	if "" == user {
+		if i := strings.IndexByte(service, '/'); -1 != i {
+			user = service[i+1:]
+			service = service[:i]
+		}
+	}
+	if "" == service || "" == user {
+		usage(cmd)
+	}
+
+	pass, err := ioutil.ReadAll(os.Stdin)
+	if nil != err {
+		fail(err)
+	}
+
+	err = keyring.Set(service, user, string(pass))
+	if nil != err {
+		fail(err)
+	}
+}
+
+func KeyringDelete(cmd *cmd.Cmd, args []string) {
+	needvar()
+
+	cmd.Flag.Parse(args)
+
+	service := cmd.Flag.Arg(0)
+	user := cmd.Flag.Arg(1)
+	if "" == user {
+		if i := strings.IndexByte(service, '/'); -1 != i {
+			user = service[i+1:]
+			service = service[:i]
+		}
+	}
+	if "" == service || "" == user {
+		usage(cmd)
+	}
+
+	err := keyring.Delete(service, user)
+	if nil != err {
+		fail(err)
+	}
 }
 
 func Auth(cmd *cmd.Cmd, args []string) {
