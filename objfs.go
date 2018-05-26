@@ -130,14 +130,19 @@ func usage(cmd *cmd.Cmd) {
 	os.Exit(2)
 }
 
+func usageWithError(err error) {
+	flag.Usage()
+	warn(err)
+	os.Exit(2)
+}
+
 func initKeyring(kind string, path string) {
 	if "system" == kind {
 		return
 	}
 
 	if "private" != kind {
-		warn(errors.New("unknown keyring type; specify -keyring in the command line"))
-		usage(nil)
+		usageWithError(errors.New("unknown keyring type; specify -keyring in the command line"))
 	}
 
 	var key []byte
@@ -269,8 +274,7 @@ func needvar(args ...interface{}) {
 			needvar(&authName, &credentials)
 			a, err := auth.Registry.NewObject(authName)
 			if nil != err {
-				warn(errors.New("unknown auth; specify -auth in the command line"))
-				usage(nil)
+				usageWithError(errors.New("unknown auth; specify -auth in the command line"))
 			}
 			s, err := a.(auth.Auth).Session(credentials)
 			if nil != err {
@@ -299,16 +303,15 @@ func needvar(args ...interface{}) {
 			needvar(&credentialPath)
 			credentials, _ = auth.ReadCredentials(credentialPath)
 			if nil == credentials {
-				warn(errors.New("unknown credentials; specify -credentials in the command line"))
-				usage(nil)
+				usageWithError(
+					errors.New("unknown credentials; specify -credentials in the command line"))
 			}
 
 		case &storageName:
 			if "" != storageName {
 				continue
 			}
-			warn(errors.New("unknown storage; specify -storage in the command line"))
-			usage(nil)
+			usageWithError(errors.New("unknown storage; specify -storage in the command line"))
 
 		case &storage:
 			if nil != storage {
