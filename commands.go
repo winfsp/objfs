@@ -32,6 +32,7 @@ import (
 	"github.com/billziss-gh/golib/config"
 	"github.com/billziss-gh/golib/errors"
 	"github.com/billziss-gh/golib/keyring"
+	"github.com/billziss-gh/golib/terminal"
 	"github.com/billziss-gh/golib/util"
 	"github.com/billziss-gh/objfs/auth"
 	"github.com/billziss-gh/objfs/cache"
@@ -188,8 +189,10 @@ func Keyring(c *cmd.Cmd, args []string) {
 	cmdmap := cmd.NewCmdMap()
 	c.Flag.Usage = cmd.UsageFunc(c, cmdmap)
 
+	var c1 *cmd.Cmd
 	cmdmap.Add("keyring.get service/user", KeyringGet)
-	cmdmap.Add("keyring.set service/user", KeyringSet)
+	c1 = cmdmap.Add("keyring.set [-k] service/user", KeyringSet)
+	c1.Flag.Bool("k", false, "keep terminating newline when on a terminal")
 	cmdmap.Add("keyring.delete service/user", KeyringDelete)
 
 	cmdmap.Run(c.Flag, args)
@@ -216,13 +219,18 @@ func KeyringGet(cmd *cmd.Cmd, args []string) {
 	if nil != err {
 		fail(err)
 	}
+
 	os.Stdout.WriteString(pass)
+	if !strings.HasSuffix(pass, "\n") && terminal.IsTerminal(os.Stdout.Fd()) {
+		os.Stdout.WriteString("\n")
+	}
 }
 
 func KeyringSet(cmd *cmd.Cmd, args []string) {
 	needvar()
 
 	cmd.Flag.Parse(args)
+	keep := cmd.GetFlag("k").(bool)
 
 	service := cmd.Flag.Arg(0)
 	user := cmd.Flag.Arg(1)
@@ -241,7 +249,12 @@ func KeyringSet(cmd *cmd.Cmd, args []string) {
 		fail(err)
 	}
 
-	err = keyring.Set(service, user, string(pass))
+	p := string(pass)
+	if !keep && terminal.IsTerminal(os.Stdin.Fd()) {
+		p = strings.TrimSuffix(p, "\n")
+	}
+
+	err = keyring.Set(service, user, p)
 	if nil != err {
 		fail(err)
 	}
