@@ -32,18 +32,32 @@ import (
 )
 
 func init() {
+	initCacheCommands(cmd.DefaultCmdMap)
+	shellCommands = append(shellCommands, initCacheCommands)
+}
+
+func initCacheCommands(cmdmap *cmd.CmdMap) {
 	var c *cmd.Cmd
-	cmd.Add("cache-statfs\nget storage information", CacheStatfs)
-	c = cmd.Add("cache-ls [-l][-n count] path...\nlist files", CacheLs)
+	addcmd(cmdmap, "cache-statfs\nget storage information",
+		CacheStatfs)
+	c = addcmd(cmdmap, "cache-ls [-l][-n count] path...\nlist files",
+		CacheLs)
 	c.Flag.Bool("l", false, "long format")
-	c = cmd.Add("cache-stat [-l] path...\ndisplay file information", CacheStat)
+	c = addcmd(cmdmap, "cache-stat [-l] path...\ndisplay file information",
+		CacheStat)
 	c.Flag.Bool("l", false, "long format")
-	cmd.Add("cache-mkdir path...\nmake directories", CacheMkdir)
-	cmd.Add("cache-rmdir path...\nremove directories", CacheRmdir)
-	cmd.Add("cache-rm path...\nremove files", CacheRm)
-	cmd.Add("cache-mv oldpath newpath\nmove (rename) files", CacheMv)
-	cmd.Add("cache-get path [local-path]\nget (download) files", CacheGet)
-	cmd.Add("cache-put [local-path] path\nput (upload) files", CachePut)
+	addcmd(cmdmap, "cache-mkdir path...\nmake directories",
+		CacheMkdir)
+	addcmd(cmdmap, "cache-rmdir path...\nremove directories",
+		CacheRmdir)
+	addcmd(cmdmap, "cache-rm path...\nremove files",
+		CacheRm)
+	addcmd(cmdmap, "cache-mv oldpath newpath\nmove (rename) files",
+		CacheMv)
+	addcmd(cmdmap, "cache-get path [local-path]\nget (download) files",
+		CacheGet)
+	addcmd(cmdmap, "cache-put [local-path] path\nput (upload) files",
+		CachePut)
 }
 
 func CacheStatfs(cmd *cmd.Cmd, args []string) {
@@ -105,7 +119,7 @@ func CacheLs(cmd *cmd.Cmd, args []string) {
 	}
 
 	if failed {
-		os.Exit(1)
+		exit(1)
 	}
 }
 
@@ -143,7 +157,7 @@ func CacheStat(cmd *cmd.Cmd, args []string) {
 	}
 
 	if failed {
-		os.Exit(1)
+		exit(1)
 	}
 }
 
@@ -175,7 +189,7 @@ func CacheMkdir(cmd *cmd.Cmd, args []string) {
 	}
 
 	if failed {
-		os.Exit(1)
+		exit(1)
 	}
 }
 
@@ -207,7 +221,7 @@ func CacheRmdir(cmd *cmd.Cmd, args []string) {
 	}
 
 	if failed {
-		os.Exit(1)
+		exit(1)
 	}
 }
 
@@ -239,7 +253,7 @@ func CacheRm(cmd *cmd.Cmd, args []string) {
 	}
 
 	if failed {
-		os.Exit(1)
+		exit(1)
 	}
 }
 

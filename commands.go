@@ -69,32 +69,47 @@ func init() {
 
 func initCommands(cmdmap *cmd.CmdMap) {
 	var c *cmd.Cmd
-	addcmd(cmdmap, "version\nget current version information", Version)
+	addcmd(cmdmap, "version\nget current version information",
+		Version)
 	addcmd(cmdmap,
 		"config {get|set|delete} [section.]name [value]\nget or set configuration options",
 		Config)
 	addcmd(cmdmap, "keyring {get|set|delete} service/user\nget or set keys",
 		Keyring)
-	addcmd(cmdmap, "auth output-credentials\nperform authentication/authorization", Auth)
-	c = addcmd(cmdmap, "mount [-o option...] mountpoint\nmount file system", Mount)
+	addcmd(cmdmap, "auth output-credentials\nperform authentication/authorization",
+		Auth)
+	c = addcmd(cmdmap, "mount [-o option...] mountpoint\nmount file system",
+		Mount)
 	c.Flag.Var(new(mntopts), "o", "FUSE mount `option`")
-	addcmd(cmdmap, "statfs\nget storage information", Statfs)
-	c = addcmd(cmdmap, "ls [-l][-n count] path...\nlist files", Ls)
+	addcmd(cmdmap, "statfs\nget storage information",
+		Statfs)
+	c = addcmd(cmdmap, "ls [-l][-n count] path...\nlist files",
+		Ls)
 	c.Flag.Bool("l", false, "long format")
 	c.Flag.Int("n", 0, "max `count` of list entries")
-	c = addcmd(cmdmap, "stat [-l] path...\ndisplay file information", Stat)
+	c = addcmd(cmdmap, "stat [-l] path...\ndisplay file information",
+		Stat)
 	c.Flag.Bool("l", false, "long format")
-	addcmd(cmdmap, "mkdir path...\nmake directories", Mkdir)
-	addcmd(cmdmap, "rmdir path...\nremove directories", Rmdir)
-	addcmd(cmdmap, "rm path...\nremove files", Rm)
-	addcmd(cmdmap, "mv oldpath newpath\nmove (rename) files", Mv)
-	c = addcmd(cmdmap, "get [-r range][-s signature] path [local-path]\nget (download) files", Get)
+	addcmd(cmdmap, "mkdir path...\nmake directories",
+		Mkdir)
+	addcmd(cmdmap, "rmdir path...\nremove directories",
+		Rmdir)
+	addcmd(cmdmap, "rm path...\nremove files",
+		Rm)
+	addcmd(cmdmap, "mv oldpath newpath\nmove (rename) files",
+		Mv)
+	c = addcmd(cmdmap, "get [-r range][-s signature] path [local-path]\nget (download) files",
+		Get)
 	c.Flag.String("r", "", "`range` to request (startpos-endpos)")
 	c.Flag.String("s", "", "only get file if it does not match `signature`")
-	addcmd(cmdmap, "put [local-path] path\nput (upload) files", Put)
-	addcmd(cmdmap, "cache-pending\nlist pending cache files", CachePending)
-	addcmd(cmdmap, "cache-reset\nreset cache (upload and evict files)", CacheReset)
+	addcmd(cmdmap, "put [local-path] path\nput (upload) files",
+		Put)
+	addcmd(cmdmap, "cache-pending\nlist pending cache files",
+		CachePending)
+	addcmd(cmdmap, "cache-reset\nreset cache (upload and evict files)",
+		CacheReset)
 }
+
 func Version(cmd *cmd.Cmd, args []string) {
 	cmd.Flag.Parse(args)
 
