@@ -98,6 +98,7 @@ var (
 )
 
 func init() {
+	flag.CommandLine.Init(flag.CommandLine.Name(), flag.PanicOnError)
 	flag.Usage = cmd.UsageFunc()
 
 	flag.StringVar(&configPath, "config", "",
@@ -127,13 +128,13 @@ func usage(cmd *cmd.Cmd) {
 	} else {
 		cmd.Flag.Usage()
 	}
-	os.Exit(2)
+	exit(2)
 }
 
 func usageWithError(err error) {
 	flag.Usage()
 	warn(err)
-	os.Exit(2)
+	exit(2)
 }
 
 func initKeyring(kind string, path string) {
@@ -343,9 +344,65 @@ func warn(err error) {
 
 func fail(err error) {
 	warn(err)
-	os.Exit(1)
+	exit(1)
+}
+
+type exitcode int
+
+func exit(c int) {
+	panic(exitcode(c))
+}
+
+func run(self *cmd.CmdMap, flagSet *flag.FlagSet, args []string) (ec int) {
+	defer func() {
+		if r := recover(); nil != r {
+			if c, ok := r.(exitcode); ok {
+				ec = int(c)
+			} else if _, ok := r.(error); ok {
+				ec = 2
+			} else {
+				panic(r)
+			}
+		}
+	}()
+
+	flagSet.Parse(args)
+	arg := flagSet.Arg(0)
+	cmd := self.Get(arg)
+
+	if nil == cmd {
+		if "help" == arg {
+			args = flagSet.Args()[1:]
+			if 0 == len(args) {
+				flagSet.Usage()
+			} else {
+				for _, name := range args {
+					cmd := self.Get(name)
+					if nil == cmd {
+						continue
+					}
+					cmd.Flag.Usage()
+				}
+			}
+		} else {
+			flagSet.Usage()
+		}
+		exit(2)
+	}
+
+	cmd.Main(cmd, flagSet.Args()[1:])
+	return
+}
+
+func addcmd(self *cmd.CmdMap, name string, main func(*cmd.Cmd, []string)) (cmd *cmd.Cmd) {
+	c := self.Add(name, main)
+	c.Flag.Init(c.Flag.Name(), flag.PanicOnError)
+	return c
 }
 
 func main() {
-	cmd.Run()
+	ec := run(cmd.DefaultCmdMap, flag.CommandLine, os.Args[1:])
+	if 0 != ec {
+		os.Exit(ec)
+	}
 }

@@ -19,11 +19,14 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
 	"path"
+	"regexp"
+	"runtime"
 	"sort"
 	"strings"
 	"time"
@@ -33,6 +36,7 @@ import (
 	"github.com/billziss-gh/golib/errors"
 	"github.com/billziss-gh/golib/keyring"
 	"github.com/billziss-gh/golib/terminal"
+	"github.com/billziss-gh/golib/terminal/editor"
 	"github.com/billziss-gh/golib/util"
 	"github.com/billziss-gh/objfs/auth"
 	"github.com/billziss-gh/objfs/cache"
@@ -59,33 +63,38 @@ func (opts *mntopts) Get() interface{} {
 }
 
 func init() {
-	var c *cmd.Cmd
-	cmd.Add("version\nget current version information", Version)
-	cmd.Add("config {get|set|delete} [section.]name [value]\nget or set configuration options",
-		Config)
-	cmd.Add("keyring {get|set|delete} service/user\nget or set keys",
-		Keyring)
-	cmd.Add("auth output-credentials\nperform authentication/authorization", Auth)
-	c = cmd.Add("mount [-o option...] mountpoint\nmount file system", Mount)
-	c.Flag.Var(new(mntopts), "o", "FUSE mount `option`")
-	cmd.Add("statfs\nget storage information", Statfs)
-	c = cmd.Add("ls [-l][-n count] path...\nlist files", Ls)
-	c.Flag.Bool("l", false, "long format")
-	c.Flag.Int("n", 0, "max `count` of list entries")
-	c = cmd.Add("stat [-l] path...\ndisplay file information", Stat)
-	c.Flag.Bool("l", false, "long format")
-	cmd.Add("mkdir path...\nmake directories", Mkdir)
-	cmd.Add("rmdir path...\nremove directories", Rmdir)
-	cmd.Add("rm path...\nremove files", Rm)
-	cmd.Add("mv oldpath newpath\nmove (rename) files", Mv)
-	c = cmd.Add("get [-r range][-s signature] path [local-path]\nget (download) files", Get)
-	c.Flag.String("r", "", "`range` to request (startpos-endpos)")
-	c.Flag.String("s", "", "only get file if it does not match `signature`")
-	cmd.Add("put [local-path] path\nput (upload) files", Put)
-	cmd.Add("cache-pending\nlist pending cache files", CachePending)
-	cmd.Add("cache-reset\nreset cache (upload and evict files)", CacheReset)
+	initCommands(cmd.DefaultCmdMap)
+	addcmd(cmd.DefaultCmdMap, "shell\ninteractive shell", Shell)
 }
 
+func initCommands(cmdmap *cmd.CmdMap) {
+	var c *cmd.Cmd
+	addcmd(cmdmap, "version\nget current version information", Version)
+	addcmd(cmdmap,
+		"config {get|set|delete} [section.]name [value]\nget or set configuration options",
+		Config)
+	addcmd(cmdmap, "keyring {get|set|delete} service/user\nget or set keys",
+		Keyring)
+	addcmd(cmdmap, "auth output-credentials\nperform authentication/authorization", Auth)
+	c = addcmd(cmdmap, "mount [-o option...] mountpoint\nmount file system", Mount)
+	c.Flag.Var(new(mntopts), "o", "FUSE mount `option`")
+	addcmd(cmdmap, "statfs\nget storage information", Statfs)
+	c = addcmd(cmdmap, "ls [-l][-n count] path...\nlist files", Ls)
+	c.Flag.Bool("l", false, "long format")
+	c.Flag.Int("n", 0, "max `count` of list entries")
+	c = addcmd(cmdmap, "stat [-l] path...\ndisplay file information", Stat)
+	c.Flag.Bool("l", false, "long format")
+	addcmd(cmdmap, "mkdir path...\nmake directories", Mkdir)
+	addcmd(cmdmap, "rmdir path...\nremove directories", Rmdir)
+	addcmd(cmdmap, "rm path...\nremove files", Rm)
+	addcmd(cmdmap, "mv oldpath newpath\nmove (rename) files", Mv)
+	c = addcmd(cmdmap, "get [-r range][-s signature] path [local-path]\nget (download) files", Get)
+	c.Flag.String("r", "", "`range` to request (startpos-endpos)")
+	c.Flag.String("s", "", "only get file if it does not match `signature`")
+	addcmd(cmdmap, "put [local-path] path\nput (upload) files", Put)
+	addcmd(cmdmap, "cache-pending\nlist pending cache files", CachePending)
+	addcmd(cmdmap, "cache-reset\nreset cache (upload and evict files)", CacheReset)
+}
 func Version(cmd *cmd.Cmd, args []string) {
 	cmd.Flag.Parse(args)
 
@@ -124,11 +133,11 @@ func Config(c *cmd.Cmd, args []string) {
 	cmdmap := cmd.NewCmdMap()
 	c.Flag.Usage = cmd.UsageFunc(c, cmdmap)
 
-	cmdmap.Add("config.get [section.]name", ConfigGet)
-	cmdmap.Add("config.set [section.]name value", ConfigSet)
-	cmdmap.Add("config.delete [section.]name", ConfigDelete)
+	addcmd(cmdmap, "config.get [section.]name", ConfigGet)
+	addcmd(cmdmap, "config.set [section.]name value", ConfigSet)
+	addcmd(cmdmap, "config.delete [section.]name", ConfigDelete)
 
-	cmdmap.Run(c.Flag, args)
+	run(cmdmap, c.Flag, args)
 }
 
 func ConfigGet(cmd *cmd.Cmd, args []string) {
@@ -190,12 +199,12 @@ func Keyring(c *cmd.Cmd, args []string) {
 	c.Flag.Usage = cmd.UsageFunc(c, cmdmap)
 
 	var c1 *cmd.Cmd
-	cmdmap.Add("keyring.get service/user", KeyringGet)
-	c1 = cmdmap.Add("keyring.set [-k] service/user", KeyringSet)
+	addcmd(cmdmap, "keyring.get service/user", KeyringGet)
+	c1 = addcmd(cmdmap, "keyring.set [-k] service/user", KeyringSet)
 	c1.Flag.Bool("k", false, "keep terminating newline when on a terminal")
-	cmdmap.Add("keyring.delete service/user", KeyringDelete)
+	addcmd(cmdmap, "keyring.delete service/user", KeyringDelete)
 
-	cmdmap.Run(c.Flag, args)
+	run(cmdmap, c.Flag, args)
 }
 
 func KeyringGet(cmd *cmd.Cmd, args []string) {
@@ -385,7 +394,7 @@ func Ls(cmd *cmd.Cmd, args []string) {
 	}
 
 	if failed {
-		os.Exit(1)
+		exit(1)
 	}
 }
 
@@ -409,7 +418,7 @@ func Stat(cmd *cmd.Cmd, args []string) {
 	}
 
 	if failed {
-		os.Exit(1)
+		exit(1)
 	}
 }
 
@@ -432,7 +441,7 @@ func Mkdir(cmd *cmd.Cmd, args []string) {
 	}
 
 	if failed {
-		os.Exit(1)
+		exit(1)
 	}
 }
 
@@ -453,7 +462,7 @@ func Rmdir(cmd *cmd.Cmd, args []string) {
 	}
 
 	if failed {
-		os.Exit(1)
+		exit(1)
 	}
 }
 
@@ -474,7 +483,7 @@ func Rm(cmd *cmd.Cmd, args []string) {
 	}
 
 	if failed {
-		os.Exit(1)
+		exit(1)
 	}
 }
 
@@ -651,6 +660,54 @@ func CacheReset(cmd *cmd.Cmd, args []string) {
 	})
 	if nil != err {
 		fail(errors.New("cache-reset", err))
+	}
+}
+
+var shellCommands = []func(cmdmap *cmd.CmdMap){
+	initCommands,
+}
+
+func Shell(c *cmd.Cmd, args []string) {
+	editor.DefaultEditor.History().SetCap(100)
+	split_re, _ := regexp.Compile(`\s+`)
+
+	if "windows" == runtime.GOOS {
+		fmt.Println("Type \"help\" for help. Type ^Z to quit.")
+	} else {
+		fmt.Println("Type \"help\" for help. Type ^D to quit.")
+	}
+
+	for {
+		line, err := editor.DefaultEditor.GetLine("> ")
+		if nil != err {
+			if io.EOF == err {
+				fmt.Println("QUIT")
+				return
+			}
+			fail(err)
+		}
+
+		line = strings.TrimSpace(line)
+		if "" == line {
+			continue
+		}
+		args = split_re.Split(line, -1)
+
+		cmdmap := cmd.NewCmdMap()
+		for _, fn := range shellCommands {
+			fn(cmdmap)
+		}
+
+		flagSet := flag.NewFlagSet("shell", flag.PanicOnError)
+		flagSet.Usage = func() {
+			fmt.Fprintln(os.Stderr, "commands:")
+			cmdmap.PrintCmds()
+		}
+
+		ec := run(cmdmap, flagSet, args)
+		if 2 != ec {
+			editor.DefaultEditor.History().Add(line)
+		}
 	}
 }
 
