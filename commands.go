@@ -25,7 +25,6 @@ import (
 	"io/ioutil"
 	"os"
 	"path"
-	"regexp"
 	"runtime"
 	"sort"
 	"strings"
@@ -35,6 +34,7 @@ import (
 	"github.com/billziss-gh/golib/config"
 	"github.com/billziss-gh/golib/errors"
 	"github.com/billziss-gh/golib/keyring"
+	"github.com/billziss-gh/golib/shlex"
 	"github.com/billziss-gh/golib/terminal"
 	"github.com/billziss-gh/golib/terminal/editor"
 	"github.com/billziss-gh/golib/util"
@@ -684,7 +684,6 @@ var shellCommands = []func(cmdmap *cmd.CmdMap){
 
 func Shell(c *cmd.Cmd, args []string) {
 	editor.DefaultEditor.History().SetCap(100)
-	split_re, _ := regexp.Compile(`\s+`)
 
 	if "windows" == runtime.GOOS {
 		fmt.Println("Type \"help\" for help. Type ^Z to quit.")
@@ -702,11 +701,14 @@ func Shell(c *cmd.Cmd, args []string) {
 			fail(err)
 		}
 
-		line = strings.TrimSpace(line)
-		if "" == line {
+		if "windows" == runtime.GOOS {
+			args = shlex.Windows.Split(line)
+		} else {
+			args = shlex.Posix.Split(line)
+		}
+		if 0 == len(args) {
 			continue
 		}
-		args = split_re.Split(line, -1)
 
 		cmdmap := cmd.NewCmdMap()
 		for _, fn := range shellCommands {
