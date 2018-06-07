@@ -17,6 +17,10 @@
 
 package errno
 
+import (
+	"github.com/billziss-gh/golib/errors"
+)
+
 //go:generate $GOPATH/bin/stringer -type=Errno $GOFILE
 
 // Errno contains an error number (code) and implements error.
@@ -105,3 +109,28 @@ const (
 	EWOULDBLOCK
 	EXDEV
 )
+
+// ErrnoFromErr converts a Go error to an Errno.
+//
+// If err is nil then ErrnoFromErr is 0. Otherwise the ErrnoFromErr will be EIO,
+// unless a more specific Errno is found in the causal chain of err.
+func ErrnoFromErr(err error) (errno Errno) {
+	if nil == err {
+		return
+	}
+
+	errno = EIO
+	for e := err; nil != e; e = errors.Cause(e) {
+		a := errors.Attachment(e)
+		if nil == a {
+			a = e
+		}
+
+		if i, ok := a.(Errno); ok && EIO != i {
+			errno = i
+			return
+		}
+	}
+
+	return
+}

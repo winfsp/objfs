@@ -19,7 +19,6 @@ package fs
 
 import (
 	"github.com/billziss-gh/cgofuse/fuse"
-	"github.com/billziss-gh/golib/errors"
 	"github.com/billziss-gh/objfs/errno"
 )
 
@@ -110,25 +109,9 @@ var errnomap = map[errno.Errno]int{
 // If err is nil then FuseErrc is 0. Otherwise the FuseErrc will be -EIO,
 // unless a more specific FuseErrc is found in the causal chain of err.
 func FuseErrc(err error) (errc int) {
-	if nil == err {
-		return
-	}
-
 	errc = -fuse.EIO
-	for e := err; nil != e; e = errors.Cause(e) {
-		a := errors.Attachment(e)
-		if nil == a {
-			a = e
-		}
-
-		switch i := a.(type) {
-		case errno.Errno:
-			if rc, ok := errnomap[i]; ok {
-				errc = rc
-				return
-			}
-		}
+	if rc, ok := errnomap[errno.ErrnoFromErr(err)]; ok {
+		errc = rc
 	}
-
 	return
 }

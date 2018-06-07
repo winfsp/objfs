@@ -37,6 +37,7 @@ import (
 	"github.com/billziss-gh/golib/trace"
 	"github.com/billziss-gh/golib/util"
 	"github.com/billziss-gh/objfs/auth"
+	"github.com/billziss-gh/objfs/errno"
 	"github.com/billziss-gh/objfs/httputil"
 	"github.com/billziss-gh/objfs/objio"
 )
@@ -339,7 +340,7 @@ func needvar(args ...interface{}) {
 }
 
 func warn(err error) {
-	fmt.Fprintf(os.Stderr, "error: %v\n", err)
+	fmt.Fprintf(os.Stderr, "error: %v (%v)\n", err, errno.ErrnoFromErr(err))
 }
 
 func fail(err error) {
