@@ -5,12 +5,18 @@ clone_folder: C:\projects\go\src\github.com\billziss-gh\objfs
 environment:
   GOPATH: C:\projects\go
   PATH: C:\mingw-w64\x86_64-6.3.0-posix-seh-rt_v5-rev1\mingw64\bin;%PATH%
-  CRED_CLIENT_ID:
+  CRED_ONEDRIVE_CLIENT_ID:
     secure: UT11dYGRv3c3lhoGnCy5ovV8wv8yG4O4Q4SWds188IzXoTPAfBXUIqvlfnkYKRU48yiB804PJNJcozwov7xiJQ==
-  CRED_CLIENT_SECRET:
+  CRED_ONEDRIVE_CLIENT_SECRET:
     secure: 3XPF6jI1pL85NB/1KLZL8ts+4AXBVbL3ToqRij2ZGDkdhxoeNrcFvcbrRKVHjIU1
-  CRED_REFRESH_TOKEN:
+  CRED_ONEDRIVE_REFRESH_TOKEN:
     secure: WNdc7OGBuyPM3GM5HIyCkzQhZpUHoryEBdb/c3al9yaWYxOq56Hk8F3rgfiDxXMQysFyicidjLxVhIAiLP20ab+rbipmuj/Umg75lQ+P8s8yQAzXSLcalEe7JwzuO3rNNG3kLs/DfMIxtQY+Idz2E2+FVSeJKu5ANhd4n9Dq/59PmofTzgPLkSNQXQAz+WMNpppZBdO4mcDBUcDyrzV+3ZCrCTOmNFwihbLfKiK8szfCr710aLEbDaheECktC73x3/rPPUmeYgKYD98FujYr6bwahgWoZEeGsMh0qFUeFCqtst4aTKpqSSR8+VmiB9j4XqSzFY0m5vOKAdSrd542j5QVddFLryAh+90awBWPLDftazgsLrTjXTAdixbNaRVmXBteSXWCoCc4dWUcGtAi6k49k49o4Ry9S0waPBBfUWC0teE+sCPwFATcdx6GpdpFWDj/RjNPAHcDvf6gnVbNOhvoEznD3iRcc6oyNtPA47bw1/xmiE7gl0eI5GzqJtuf6UGhvvsVFupeWfCMeMu5/139TIZa4IVOg5pS9sI+0Mw=
+  CRED_DROPBOX_CLIENT_ID:
+    secure: VOtCMn3h+Nc6e73ltKHDwfSPwyi5+YGD5JAaNK/91lA=
+  CRED_DROPBOX_CLIENT_SECRET:
+    secure: TCUqhc9RPVu08+GiuQ54gVSaQmKbUgAPwIzTuJ/PqSM=
+  CRED_DROPBOX_ACCESS_TOKEN:
+    secure: kC1OC3iN+t5NebzM6rQrWYm0CFcIYDrmd+S3lfJ1sEEc+EXTzg3ip4GF9FOlX+eaFUaRAgXNGH2heNVEsz5ATiH+WtrX62AJG+Qb3NSZN0w=
 
 install:
 - git submodule update --init --recursive
@@ -28,17 +34,32 @@ test_script:
 - devenv C:\projects\winfsp\build\VStudio\winfsp.sln /build "Release|x64"
 - pushd C:\projects\secfs.test && nmake /f Nmakefile && popd
 
-- echo access_token=0        >C:\projects\onedrive.txt
-- echo %CRED_CLIENT_ID%     >>C:\projects\onedrive.txt
-- echo %CRED_CLIENT_SECRET% >>C:\projects\onedrive.txt
-- echo %CRED_REFRESH_TOKEN% >>C:\projects\onedrive.txt
+- echo access_token=0                 >C:\projects\onedrive.txt
+- echo %CRED_ONEDRIVE_CLIENT_ID%     >>C:\projects\onedrive.txt
+- echo %CRED_ONEDRIVE_CLIENT_SECRET% >>C:\projects\onedrive.txt
+- echo %CRED_ONEDRIVE_REFRESH_TOKEN% >>C:\projects\onedrive.txt
 
 # hard code fsreg parameters because appveyor does not like percents ("--VolumePrefix=%1 %2")
-- C:\projects\winfsp\tools\fsreg.bat objfs "C:\projects\go\src\github.com\billziss-gh\objfs\objfs.exe" "-credentials=C:\projects\onedrive.txt mount -o uid=11,gid=65792,umask=0077,VolumePrefix=/objfs/onedrive M:" "D:P(A;;RPWPLC;;;WD)"
+- C:\projects\winfsp\tools\fsreg.bat objfs.onedrive "C:\projects\go\src\github.com\billziss-gh\objfs\objfs.exe" "-storage=onedrive -credentials=C:\projects\onedrive.txt mount -o uid=11,gid=65792,umask=0077,VolumePrefix=/objfs.onedrive/share M:" "D:P(A;;RPWPLC;;;WD)"
 
-- 'net use M: \\objfs\onedrive'
+- 'net use M: \\objfs.onedrive\share'
 - 'M: & cd'
-- C:\projects\winfsp\build\VStudio\build\Release\winfsp-tests-x64.exe --case-insensitive-cmp --external --resilient --share-prefix=\objfs\onedrive -reparse* -stream* -create_allocation_test -create_backup_test -create_restore_test -create_fileattr_test -create_notraverse_test -getfileinfo_name_test -setfileinfo_test -delete_access_test -setsecurity_test -exec_rename_test
+- C:\projects\winfsp\build\VStudio\build\Release\winfsp-tests-x64.exe --case-insensitive-cmp --external --resilient --share-prefix=\objfs.onedrive\share -reparse* -stream* -create_allocation_test -create_backup_test -create_restore_test -create_fileattr_test -create_notraverse_test -getfileinfo_name_test -setfileinfo_test -delete_access_test -setsecurity_test -exec_rename_test
+- C:\projects\secfs.test\fstools\src\fsx\fsx.exe -N 10000 test xxxxxx
+- 'C: & cd'
+- 'net use M: /delete'
+
+- echo token_type="Bearer"           >C:\projects\dropbox.txt
+- echo %CRED_DROPBOX_CLIENT_ID%     >>C:\projects\dropbox.txt
+- echo %CRED_DROPBOX_CLIENT_SECRET% >>C:\projects\dropbox.txt
+- echo %CRED_DROPBOX_ACCESS_TOKEN%  >>C:\projects\dropbox.txt
+
+# hard code fsreg parameters because appveyor does not like percents ("--VolumePrefix=%1 %2")
+- C:\projects\winfsp\tools\fsreg.bat objfs.dropbox "C:\projects\go\src\github.com\billziss-gh\objfs\objfs.exe" "-storage=dropbox -credentials=C:\projects\dropbox.txt mount -o uid=11,gid=65792,umask=0077,VolumePrefix=/objfs.dropbox/share M:" "D:P(A;;RPWPLC;;;WD)"
+
+- 'net use M: \\objfs.dropbox\share'
+- 'M: & cd'
+- C:\projects\winfsp\build\VStudio\build\Release\winfsp-tests-x64.exe --case-insensitive-cmp --external --resilient --share-prefix=\objfs.dropbox\share -reparse* -stream* -create_allocation_test -create_backup_test -create_restore_test -create_fileattr_test -create_notraverse_test -getfileinfo_test -getfileinfo_name_test -setfileinfo_test -delete_access_test -setsecurity_test -exec_rename_test
 - C:\projects\secfs.test\fstools\src\fsx\fsx.exe -N 10000 test xxxxxx
 - 'C: & cd'
 - 'net use M: /delete'
