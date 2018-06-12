@@ -59,7 +59,7 @@ test_script:
 
 - 'net use M: \\objfs.dropbox\share'
 - 'M: & cd'
-- C:\projects\winfsp\build\VStudio\build\Release\winfsp-tests-x64.exe --case-insensitive-cmp --external --resilient --share-prefix=\objfs.dropbox\share -reparse* -stream* -create_allocation_test -create_backup_test -create_restore_test -create_fileattr_test -create_notraverse_test -getfileinfo_test -getfileinfo_name_test -setfileinfo_test -delete_access_test -setsecurity_test -exec_rename_test
+- C:\projects\winfsp\build\VStudio\build\Release\winfsp-tests-x64.exe --case-insensitive-cmp --external --resilient --share-prefix=\objfs.dropbox\share -reparse* -stream* -create_allocation_test -create_backup_test -create_restore_test -create_fileattr_test -create_notraverse_test -getfileinfo_test -getfileinfo_name_test -setfileinfo_test -delete_access_test -rename_caseins_test -setsecurity_test -exec_rename_test
 - C:\projects\secfs.test\fstools\src\fsx\fsx.exe -N 10000 test xxxxxx
 - 'C: & cd'
 - 'net use M: /delete'
